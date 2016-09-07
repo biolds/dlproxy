@@ -4,19 +4,19 @@ import os
 import socket
 import ssl
 import select
-import httplib
-import urlparse
+import http.client
+import urllib.parse
 import threading
 import gzip
 import zlib
 import time
 import json
 import re
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
-from SocketServer import ThreadingMixIn
-from cStringIO import StringIO
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from socketserver import ThreadingMixIn
+from io import StringIO
 from subprocess import Popen, PIPE
-from HTMLParser import HTMLParser
+from html.parser import HTMLParser
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
@@ -123,7 +123,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             else:
                 req.path = "http://%s%s" % (req.headers['Host'], req.path)
 
-        u = urlparse.urlsplit(req.path)
+        u = urllib.parse.urlsplit(req.path)
         scheme, netloc, path = u.scheme, u.netloc, (u.path + '?' + u.query if u.query else u.path)
         assert scheme in ('http', 'https')
         if netloc:
@@ -135,9 +135,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             origin = (scheme, netloc)
             if not origin in self.tls.conns:
                 if scheme == 'https':
-                    self.tls.conns[origin] = httplib.HTTPSConnection(netloc, timeout=self.timeout)
+                    self.tls.conns[origin] = http.client.HTTPSConnection(netloc, timeout=self.timeout)
                 else:
-                    self.tls.conns[origin] = httplib.HTTPConnection(netloc, timeout=self.timeout)
+                    self.tls.conns[origin] = http.client.HTTPConnection(netloc, timeout=self.timeout)
             conn = self.tls.conns[origin]
             conn.request(self.command, path, req_body, dict(req_headers))
             res = conn.getresponse()
@@ -145,7 +145,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             setattr(res, 'headers', res.msg)
             setattr(res, 'response_version', version_table[res.version])
             res_headers = self.filter_headers(res.headers)
-            print 'dispo:', res_headers.get('content-disposition', '')
+            print('dispo:', res_headers.get('content-disposition', ''))
             download = res_headers.get('content-disposition', '').startswith('attachment;') or res_headers.get('content-type', '').startswith('application/')
             if download:
                 self.send_response(302)
@@ -209,7 +209,7 @@ def test(HandlerClass=ProxyRequestHandler, ServerClass=ThreadingHTTPServer, prot
     httpd = ServerClass(server_address, HandlerClass)
 
     sa = httpd.socket.getsockname()
-    print "Serving HTTP Proxy on", sa[0], "port", sa[1], "..."
+    print("Serving HTTP Proxy on", sa[0], "port", sa[1], "...")
     httpd.serve_forever()
 
 
