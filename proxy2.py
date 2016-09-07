@@ -128,8 +128,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         assert scheme in ('http', 'https')
         if netloc:
             req.headers['Host'] = netloc
-        req_headers = self.filter_headers(req.headers)
-        
+        req_headers = self.filter_headers(req.headers.items())
 
         try:
             origin = (scheme, netloc)
@@ -144,20 +143,24 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             version_table = {10: 'HTTP/1.0', 11: 'HTTP/1.1'}
             setattr(res, 'headers', res.msg)
             setattr(res, 'response_version', version_table[res.version])
-            res_headers = self.filter_headers(res.headers)
-            print('dispo:', res_headers.get('content-disposition', ''))
-            download = res_headers.get('content-disposition', '').startswith('attachment;') or res_headers.get('content-type', '').startswith('application/')
+            res_headers = self.filter_headers(res.getheaders())
+            print('headers:', res_headers)
+            download = self._is_download(res_headers)
             if download:
                 self.send_response(302)
                 self.send_header('Location', 'http://config0.nnsw/download/' + req.path)
+                self.end_headers()
                 fpath = req.path.replace('/', '_')
-                fd = open(fpath, 'w')
+                fd = open(fpath, 'wb')
             else:
-                self.wfile.write("%s %d %s\r\n" % (self.protocol_version, res.status, res.reason))
-                for line in res_headers.headers:
-                    self.wfile.write(line)
+                response = "%s %d %s\r\n" % (self.protocol_version, res.status, res.reason)
+                self.wfile.write(response.encode('ascii'))
+                print('resp!', repr(res.headers))
+                for key, val in res_headers:
+                    header = '%s: %s\r\n' % (key, val)
+                    self.wfile.write(header.encode('ascii'))
+                self.wfile.write(b'\r\n')
                 fd = self.wfile
-            self.end_headers()
 
             while True:
                 res_body = res.read(1024)
@@ -172,8 +175,31 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         except Exception as e:
             if origin in self.tls.conns:
                 del self.tls.conns[origin]
+            raise
             self.send_error(502, repr(e))
             return
+
+    def _is_download(self, headers):
+        _headers = []
+        for key, val in headers:
+            key = key.lower()
+            _headers.append((key, val))
+        headers = dict(_headers)
+
+        if headers.get('nnsw_bypass_download', ''):
+            return False
+
+        if headers.get('content-disposition', '').startswith('attachment;'):
+            return True
+
+        content_type = headers.get('content-type', '')
+        if not content_type.startswith('application/'):
+            return False
+        if content_type.startswith('application/font'):
+            return False
+        if content_type in ('application/javascript',):
+            return False
+        return True
 
     do_HEAD = do_GET
     do_POST = do_GET
@@ -182,9 +208,11 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
     def filter_headers(self, headers):
         # http://tools.ietf.org/html/rfc2616#section-13.5.1
         hop_by_hop = ('connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailers', 'transfer-encoding', 'upgrade')
-        for k in hop_by_hop:
-            del headers[k]
-        return headers
+        _headers = []
+        for key, val in headers:
+            if key.lower() not in hop_by_hop:
+                _headers.append((key, val))
+        return _headers
 
     def send_cacert(self):
         with open(self.cacert, 'rb') as f:
