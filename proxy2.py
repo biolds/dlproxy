@@ -129,6 +129,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         if netloc:
             req.headers['Host'] = netloc
         req_headers = self.filter_headers(req.headers)
+        
 
         try:
             origin = (scheme, netloc)
@@ -143,11 +144,19 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             version_table = {10: 'HTTP/1.0', 11: 'HTTP/1.1'}
             setattr(res, 'headers', res.msg)
             setattr(res, 'response_version', version_table[res.version])
-            self.wfile.write("%s %d %s\r\n" % (self.protocol_version, res.status, res.reason))
             res_headers = self.filter_headers(res.headers)
-
-            for line in res_headers.headers:
-                self.wfile.write(line)
+            print 'dispo:', res_headers.get('content-disposition', '')
+            download = res_headers.get('content-disposition', '').startswith('attachment;') or res_headers.get('content-type', '').startswith('application/')
+            if download:
+                self.send_response(302)
+                self.send_header('Location', 'http://config0.nnsw/download/' + req.path)
+                fpath = req.path.replace('/', '_')
+                fd = open(fpath, 'w')
+            else:
+                self.wfile.write("%s %d %s\r\n" % (self.protocol_version, res.status, res.reason))
+                for line in res_headers.headers:
+                    self.wfile.write(line)
+                fd = self.wfile
             self.end_headers()
 
             while True:
@@ -156,9 +165,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 if len(res_body) == 0:
                     break
 
-                self.wfile.write(res_body)
+                fd.write(res_body)
 
-            self.wfile.flush()
+            fd.flush()
+            self.log_request(res.status, res.reason)
         except Exception as e:
             if origin in self.tls.conns:
                 del self.tls.conns[origin]
