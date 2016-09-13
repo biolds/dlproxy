@@ -219,12 +219,20 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         if ip_addr.is_private:
             return False, None
 
-        if res.getheader('Content-Disposition', '').startswith('attachment; filename='):
-            content = res.getheader('Content-Disposition')
-            content = content[len('attachment; filename='):]
-            print('attachment:', content)
-            assert content[0] == '"' and content[-1] == '"'
-            return True, content
+        print('headers:', res.getheaders())
+        disposition = res.getheader('Content-Disposition', '')
+        #if disposition.startswith('inline;'):
+        #    return False, None
+
+        if disposition.startswith('attachment;') or disposition.startswith('inline;'):
+            disps = [disp.strip() for disp in disposition.split(';')][1:]
+            for disp in disps:
+                # TODO: select utf8 filename if present
+                if disp.startswith('filename='):
+                    print('disp:', disposition)
+                    disp = disp[len('filename='):]
+                    disp = disp.strip('"')
+                    return True, disp
 
         content_type = res.getheader('Content-Type', '')
         if ';' in content_type:
@@ -233,9 +241,12 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         print('type:', content_type)
         if not content_type.startswith('application/'):
             return False, None
-        if content_type.startswith('application/font'):
-            return False, None
-        if content_type in ('application/javascript', 'application/x-javascript', 'application/x-www-form-urlencoded'):
+        for mime in ('application/x-font', 'application/font', 'application/vnd.'):
+            if content_type.startswith(mime):
+                return False, None
+
+        if content_type in ('application/javascript', 'application/x-javascript',
+                'application/x-www-form-urlencoded', 'application/json'):
             return False, None
 
         u = urllib.parse.urlsplit(self.path)
