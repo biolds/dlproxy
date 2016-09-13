@@ -12,11 +12,38 @@ import zlib
 import time
 import json
 import re
+import cgi
+from ipaddress import ip_address
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
-from io import StringIO
+from io import StringIO, BytesIO
 from subprocess import Popen, PIPE
 from html.parser import HTMLParser
+
+
+download_html = '''
+<html>
+<head>
+  <title>{filename}</title>
+  <script src="http://code.jquery.com/jquery-3.1.0.min.js"
+          integrity="sha256-cCueBR6CsyA4/9szpPfrX3s49M9vUU5BgtiJj06wt/s="
+          crossorigin="anonymous"></script>
+</head>
+<body>
+<h1>{filename}</h1>
+<form action="http://proxy2.post" method="POST" enctype="x-www-form-urlencoded">
+    <input type="hidden" name="path" value="{path}" />
+    <input type="hidden" name="filename" value="{filename}" />
+    <input type="hidden" name="size" value="{size}" />
+    <input type="hidden" name="mimetype" value="{mimetype}" />
+    <input type="hidden" name="origin" value="{origin}" />
+    <input type="radio" name="action" value="store" checked>Store</input>
+    <input type="radio" name="action" value="download">Download</input>
+    <input type="submit" value="Submit">
+</form>
+</body>
+</html>
+'''
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
@@ -70,8 +97,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 p2 = Popen(["openssl", "x509", "-req", "-days", "3650", "-CA", self.cacert, "-CAkey", self.cakey, "-set_serial", epoch, "-out", certpath], stdin=p1.stdout, stderr=PIPE)
                 p2.communicate()
 
-        self.wfile.write("%s %d %s\r\n" % (self.protocol_version, 200, 'Connection Established'))
-        self.end_headers()
+        resp = "%s %d %s\r\n" % (self.protocol_version, 200, 'Connection Established')
+        resp = resp.encode('ascii')
+        self.wfile.write(resp + b'\r\n')
 
         self.connection = ssl.wrap_socket(self.connection, keyfile=self.certkey, certfile=certpath, server_side=True)
         self.rfile = self.connection.makefile("rb", self.rbufsize)
@@ -117,6 +145,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         content_length = int(req.headers.get('Content-Length', 0))
         req_body = self.rfile.read(content_length) if content_length else None
 
+        if self.path == 'http://proxy2.post/':
+            self.download_post(req_body)
+            return
+
         if req.path[0] == '/':
             if isinstance(self.connection, ssl.SSLSocket):
                 req.path = "https://%s%s" % (req.headers['Host'], req.path)
@@ -143,19 +175,17 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             version_table = {10: 'HTTP/1.0', 11: 'HTTP/1.1'}
             setattr(res, 'headers', res.msg)
             setattr(res, 'response_version', version_table[res.version])
-            res_headers = self.filter_headers(res.getheaders())
-            print('headers:', res_headers)
-            download = self._is_download(res_headers)
+            download, filename = self._is_download(netloc, res)
+            print('download:', download)
             if download:
-                self.send_response(302)
-                self.send_header('Location', 'http://config0.nnsw/download/' + req.path)
-                self.end_headers()
                 fpath = req.path.replace('/', '_')
-                fd = open(fpath, 'wb')
+                fd = open('cache/' + fpath, 'wb')
+                self.send_download_page(fpath, filename, res.getheader('content-length', 0),
+                                                         res.getheader('content-type', 'application/x-binary'))
             else:
                 response = "%s %d %s\r\n" % (self.protocol_version, res.status, res.reason)
                 self.wfile.write(response.encode('ascii'))
-                print('resp!', repr(res.headers))
+                res_headers = self.filter_headers(res.getheaders())
                 for key, val in res_headers:
                     header = '%s: %s\r\n' % (key, val)
                     self.wfile.write(header.encode('ascii'))
@@ -164,10 +194,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             while True:
                 res_body = res.read(1024)
-
                 if len(res_body) == 0:
                     break
-
                 fd.write(res_body)
 
             fd.flush()
@@ -175,31 +203,43 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         except Exception as e:
             if origin in self.tls.conns:
                 del self.tls.conns[origin]
-            raise
             self.send_error(502, repr(e))
-            return
+            raise
 
-    def _is_download(self, headers):
-        _headers = []
-        for key, val in headers:
-            key = key.lower()
-            _headers.append((key, val))
-        headers = dict(_headers)
+    def _is_download(self, netloc, res):
+        if ':' in netloc:
+            netloc = netloc.split(':', 1)[0]
 
-        if headers.get('nnsw_bypass_download', ''):
-            return False
+        try:
+            ip_addr = ip_address(netloc)
+        except ValueError:
+            ip_addr = socket.gethostbyname(netloc)
+            ip_addr = ip_address(ip_addr)
 
-        if headers.get('content-disposition', '').startswith('attachment;'):
-            return True
+        if ip_addr.is_private:
+            return False, None
 
-        content_type = headers.get('content-type', '')
+        if res.getheader('Content-Disposition', '').startswith('attachment; filename='):
+            content = res.getheader('Content-Disposition')
+            content = content[len('attachment; filename='):]
+            print('attachment:', content)
+            assert content[0] == '"' and content[-1] == '"'
+            return True, content
+
+        content_type = res.getheader('Content-Type', '')
+        if ';' in content_type:
+            content_type = content_type.split(';', 1)[0]
+
+        print('type:', content_type)
         if not content_type.startswith('application/'):
-            return False
+            return False, None
         if content_type.startswith('application/font'):
-            return False
-        if content_type in ('application/javascript',):
-            return False
-        return True
+            return False, None
+        if content_type in ('application/javascript', 'application/x-javascript', 'application/x-www-form-urlencoded'):
+            return False, None
+
+        u = urllib.parse.urlsplit(self.path)
+        return True, os.path.basename(u.path)
 
     do_HEAD = do_GET
     do_POST = do_GET
@@ -214,17 +254,73 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 _headers.append((key, val))
         return _headers
 
+    def send_content_response(self, content, content_type):
+        #content_type = content_type.encode('ascii')
+        response = "%s %d %s\r\n" % (self.protocol_version, 200, 'OK')
+        response = response.encode('ascii')
+        self.wfile.write(response)
+        self.send_header('Content-Type', content_type)
+        self.send_header('Content-Length', len(content))
+        self.send_header('Connection', 'close')
+        self.end_headers()
+        self.wfile.write(content)
+
     def send_cacert(self):
         with open(self.cacert, 'rb') as f:
             data = f.read()
+        self.send_content_response(data, 'application/x-x509-ca-cert')
 
-        self.wfile.write("%s %d %s\r\n" % (self.protocol_version, 200, 'OK'))
-        self.send_header('Content-Type', 'application/x-x509-ca-cert')
-        self.send_header('Content-Length', len(data))
+    def send_download_page(self, path, filename, size, mimetype):
+        # Redirect
+        origin = self.path
+        if self.headers.get('referer', ''):
+            origin = self.headers.get('referer')
+        html = download_html.format(path=path, filename=filename, size=size, mimetype=mimetype, origin=origin)
+        html = html.encode('ascii')
+        self.send_content_response(html, 'text/html')
+
+    def download_post(self, req_body):
+        data = urllib.parse.parse_qsl(req_body.decode('ascii'))
+        data = dict(data)
+        print('data:', data)
+        data['filename'] = data['filename'].replace('/', '_')
+        data['path'] = data['path'].replace('/', '_')
+        if data['action'] == 'store':
+            os.rename('cache/' + data['path'], 'downloads/' + data['filename'])
+            self.send_response(302)
+            self.send_header('Location', data['origin'])
+            self.end_headers()
+            return
+        elif data['action'] != 'download':
+            raise Exception('bad action')
+
+        f = open('cache/' + data['path'], 'rb')
+        os.unlink('cache/' + data['path'])
+
+        response = "%s %d %s\r\n" % (self.protocol_version, 200, 'OK')
+        response = response.encode('ascii')
+        self.wfile.write(response)
+        self.send_header('Content-Type', data['mimetype'])
+        self.send_header('Content-Length', data['size'])
+        self.send_header('Content-Disposition', 'attachment; filename="%s"' % data['filename'])
+        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
         self.send_header('Connection', 'close')
         self.end_headers()
-        self.wfile.write(data)
 
+        size = int(data['size'])
+        while size:
+            n = 1024 if size > 1024 else size
+            buf = f.read(n)
+            if buf == 0:
+                sleep(1)
+                continue
+
+            self.wfile.write(buf)
+            size -= len(buf)
+        self.wfile.flush()
+        f.close()
 
 def test(HandlerClass=ProxyRequestHandler, ServerClass=ThreadingHTTPServer, protocol="HTTP/1.1"):
     if sys.argv[1:]:
