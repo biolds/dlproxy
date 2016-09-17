@@ -31,7 +31,7 @@ download_html = '''
 </head>
 <body>
 <h1>{filename}</h1>
-<form action="http://proxy2.post" method="POST" enctype="x-www-form-urlencoded">
+<form action="https://proxy2.post" method="POST" enctype="x-www-form-urlencoded">
     <input type="hidden" name="path" value="{path}" />
     <input type="hidden" name="filename" value="{filename}" />
     <input type="hidden" name="size" value="{size}" />
@@ -145,15 +145,15 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         content_length = int(req.headers.get('Content-Length', 0))
         req_body = self.rfile.read(content_length) if content_length else None
 
-        if self.path == 'http://proxy2.post/':
-            self.download_post(req_body)
-            return
-
         if req.path[0] == '/':
             if isinstance(self.connection, ssl.SSLSocket):
                 req.path = "https://%s%s" % (req.headers['Host'], req.path)
             else:
                 req.path = "http://%s%s" % (req.headers['Host'], req.path)
+
+        if req.path == 'https://proxy2.post/':
+            self.download_post(req_body)
+            return
 
         u = urllib.parse.urlsplit(req.path)
         scheme, netloc, path = u.scheme, u.netloc, (u.path + '?' + u.query if u.query else u.path)
