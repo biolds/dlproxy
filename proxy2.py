@@ -45,6 +45,7 @@ download_html = '''
 </html>
 '''
 
+DEV = True
 
 my_hostname = socket.gethostname()
 my_port = 8080
@@ -115,20 +116,23 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             if self.path.startswith(my_address()):
                 router.handle(self)
             else:
-                mname = 'do_' + self.command
-                if not hasattr(self, mname):
-                    self.send_error(
-                        HTTPStatus.NOT_IMPLEMENTED,
-                        "Unsupported method (%r)" % self.command)
-                    return
-                method = getattr(self, mname)
-                method()
+                self.proxy_request()
             self.wfile.flush() #actually send the response if not already done.
         except socket.timeout as e:
             #a read or a write timed out.  Discard this connection
             self.log_error("Request timed out: %r", e)
             self.close_connection = True
             return
+
+    def proxy_request(self):
+        mname = 'do_' + self.command
+        if not hasattr(self, mname):
+            self.send_error(
+                HTTPStatus.NOT_IMPLEMENTED,
+                "Unsupported method (%r)" % self.command)
+            return
+        method = getattr(self, mname)
+        method()
 
     def log_error(self, format, *args):
         # surpress "Request timed out: timeout('timed out',)"
