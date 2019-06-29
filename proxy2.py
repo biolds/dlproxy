@@ -18,8 +18,8 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from io import StringIO, BytesIO
 from subprocess import Popen, PIPE
-from html.parser import HTMLParser
 
+from local.router import router
 
 download_html = '''
 <html>
@@ -44,6 +44,14 @@ download_html = '''
 </body>
 </html>
 '''
+
+
+my_hostname = socket.gethostname()
+my_port = 8080
+
+def my_address():
+    global my_port
+    return 'http://%s:%s/' % (my_hostname, my_port)
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
@@ -72,6 +80,55 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         self.tls.conns = {}
 
         BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
+
+    def handle_one_request(self):
+        """Handle a single HTTP request.
+
+        You normally don't need to override this method; see the class
+        __doc__ string for information on how to handle specific HTTP
+        commands such as GET and POST.
+
+        """
+        try:
+            self.raw_requestline = self.rfile.readline(65537)
+            if len(self.raw_requestline) > 65536:
+                self.requestline = ''
+                self.request_version = ''
+                self.command = ''
+                self.send_error(HTTPStatus.REQUEST_URI_TOO_LONG)
+                return
+            if not self.raw_requestline:
+                self.close_connection = True
+                return
+            if not self.parse_request():
+                # An error code has been sent, just exit
+                return
+
+            # Normalize request path
+            if self.path[0] == '/':
+                if isinstance(self.connection, ssl.SSLSocket):
+                    self.path = "https://%s%s" % (self.headers['Host'], self.path)
+                else:
+                    self.path = "http://%s%s" % (self.headers['Host'], self.path)
+
+            print('path %s' % self.path)
+            if self.path.startswith(my_address()):
+                router.handle(self)
+            else:
+                mname = 'do_' + self.command
+                if not hasattr(self, mname):
+                    self.send_error(
+                        HTTPStatus.NOT_IMPLEMENTED,
+                        "Unsupported method (%r)" % self.command)
+                    return
+                method = getattr(self, mname)
+                method()
+            self.wfile.flush() #actually send the response if not already done.
+        except socket.timeout as e:
+            #a read or a write timed out.  Discard this connection
+            self.log_error("Request timed out: %r", e)
+            self.close_connection = True
+            return
 
     def log_error(self, format, *args):
         # surpress "Request timed out: timeout('timed out',)"
@@ -137,19 +194,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 other.sendall(data)
 
     def do_GET(self):
-        if self.path == 'http://proxy2.test/':
-            self.send_cacert()
-            return
-
         req = self
         content_length = int(req.headers.get('Content-Length', 0))
         req_body = self.rfile.read(content_length) if content_length else None
-
-        if req.path[0] == '/':
-            if isinstance(self.connection, ssl.SSLSocket):
-                req.path = "https://%s%s" % (req.headers['Host'], req.path)
-            else:
-                req.path = "http://%s%s" % (req.headers['Host'], req.path)
 
         if req.path == 'https://proxy2.post/':
             self.download_post(req_body)
@@ -276,11 +323,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(content)
 
-    def send_cacert(self):
-        with open(self.cacert, 'rb') as f:
-            data = f.read()
-        self.send_content_response(data, 'application/x-x509-ca-cert')
-
     def send_download_page(self, path, filename, size, mimetype):
         # Redirect
         origin = self.path
@@ -334,11 +376,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         f.close()
 
 def test(HandlerClass=ProxyRequestHandler, ServerClass=ThreadingHTTPServer, protocol="HTTP/1.1"):
+    global my_port
     if sys.argv[1:]:
-        port = int(sys.argv[1])
-    else:
-        port = 8080
-    server_address = ('', port)
+        my_port = int(sys.argv[1])
+    server_address = ('', my_port)
 
     HandlerClass.protocol_version = protocol
     httpd = ServerClass(server_address, HandlerClass)
