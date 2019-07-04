@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import argparse
 import sys
 import os
 import socket
@@ -48,11 +49,11 @@ download_html = '''
 DEV = True
 
 my_hostname = socket.gethostname()
-my_port = 8080
+conf = None
 
 def my_address():
-    global my_port
-    return 'http://%s:%s/' % (my_hostname, my_port)
+    global conf
+    return 'http://%s:%s/' % (my_hostname, conf.port)
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
@@ -69,6 +70,8 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 class ProxyRequestHandler(BaseHTTPRequestHandler):
+    protocol = 'HTTP/1.1'
+
     cakey = 'ca.key'
     cacert = 'ca.crt'
     certkey = 'cert.key'
@@ -379,19 +382,17 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         self.wfile.flush()
         f.close()
 
-def test(HandlerClass=ProxyRequestHandler, ServerClass=ThreadingHTTPServer, protocol="HTTP/1.1"):
-    global my_port
-    if sys.argv[1:]:
-        my_port = int(sys.argv[1])
-    server_address = ('', my_port)
-
-    HandlerClass.protocol_version = protocol
-    httpd = ServerClass(server_address, HandlerClass)
-
-    sa = httpd.socket.getsockname()
-    print("Serving HTTP Proxy on", sa[0], "port", sa[1], "...")
-    httpd.serve_forever()
-
 
 if __name__ == '__main__':
-    test()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dev', action='store_true', help='Serve UI through Angular development server (on localhost:4200)')
+    parser.add_argument('-p', '--port', type=int, help='Port number to listen on', default=8000)
+    global conf
+    conf = parser.parse_args()
+
+    server_address = ('', conf.port)
+    httpd = ThreadingHTTPServer(server_address, ProxyRequestHandler)
+
+    sa = httpd.socket.getsockname()
+    print('Serving HTTP Proxy on', sa[0], 'port', sa[1], '...')
+    httpd.serve_forever()
