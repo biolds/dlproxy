@@ -1,7 +1,15 @@
-from sqlalchemy import BigInteger, DateTime, Column, ForeignKey, Integer, String, func
+import enum
+
+from sqlalchemy import BigInteger, Column, DateTime, Enum, ForeignKey, Integer, String, func
 from sqlalchemy.orm import relationship
 
 from local.sql import Base, Url
+
+
+class DownloadState(enum.Enum):
+    undecided = 0
+    in_progress = 1
+    finished = 2
 
 
 class Download(Base):
@@ -11,3 +19,4 @@ class Download(Base):
     url = relationship(Url)
     date = Column(DateTime, default=func.now())
     filesize = Column(BigInteger)
+    state = Column(Enum(DownloadState), default=DownloadState.undecided)

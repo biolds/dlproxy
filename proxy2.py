@@ -24,8 +24,9 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 from local.access import UrlAccess
+from local.download import Download
 from local.router import router
-from local.sql import Base
+from local.sql import Base, Url
 
 download_html = '''
 <html>
@@ -61,9 +62,12 @@ session_factory = sessionmaker(bind=engine)
 DBSession = scoped_session(session_factory)
 
 
-def my_address():
+def my_address(path=None):
     global conf
-    return 'http://%s:%s/' % (my_hostname, conf.port)
+    addr = 'http://%s:%s/' % (my_hostname, conf.port)
+    if path:
+        addr += path
+    return addr
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
@@ -131,7 +135,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 else:
                     self.path = "http://%s%s" % (self.headers['Host'], self.path)
 
-            UrlAccess.log(self.db, self.path, self.headers['Referer'])
+            db_url = UrlAccess.log(self.db, self.path, self.headers['Referer'])
 
             print('path %s' % self.path)
             if self.path.startswith(my_address()):
@@ -252,8 +256,13 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             if download:
                 fpath = req.path.replace('/', '_')
                 fd = open('cache/' + fpath, 'wb')
-                self.send_download_page(fpath, filename, res.getheader('content-length', 0),
-                                                         res.getheader('content-type', 'application/x-binary'))
+                db_url = Url.get_or_create(self.db, req.path)
+                download = Download(url=db_url, filesize=res.getheader('content-length', 0))
+                self.db.add(download)
+                self.db.commit()
+                self.send_response(302)
+                self.send_header('Location', my_address('/download/%s' % download.id))
+                self.end_headers()
             else:
                 response = "%s %d %s\r\n" % (self.protocol_version, res.status, res.reason)
                 self.wfile.write(response.encode('ascii'))
@@ -418,5 +427,5 @@ if __name__ == '__main__':
     httpd = ThreadingHTTPServer(server_address, ProxyRequestHandler)
 
     sa = httpd.socket.getsockname()
-    print('Serving HTTP Proxy on', sa[0], 'port', sa[1], '...')
+    print('Serving', my_address(), 'HTTP Proxy on', sa[0], 'port', sa[1], '...')
     httpd.serve_forever()
