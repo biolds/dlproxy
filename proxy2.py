@@ -20,7 +20,12 @@ from socketserver import ThreadingMixIn
 from io import StringIO, BytesIO
 from subprocess import Popen, PIPE
 
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import sessionmaker, scoped_session
+
+from local.access import UrlAccess
 from local.router import router
+from local.sql import Base
 
 download_html = '''
 <html>
@@ -50,6 +55,11 @@ DEV = True
 
 my_hostname = socket.gethostname()
 conf = None
+
+engine = create_engine('postgresql+psycopg2://dlproxy:dlproxy@localhost:5432/dlproxy') #, echo=True)
+session_factory = sessionmaker(bind=engine)
+DBSession = scoped_session(session_factory)
+
 
 def my_address():
     global conf
@@ -85,6 +95,12 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
         BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
 
+    def setup(self):
+        super().setup()
+        global DBSession
+        self.db = DBSession()
+        print('new setup')
+
     def handle_one_request(self):
         """Handle a single HTTP request.
 
@@ -114,6 +130,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                     self.path = "https://%s%s" % (self.headers['Host'], self.path)
                 else:
                     self.path = "http://%s%s" % (self.headers['Host'], self.path)
+
+            UrlAccess.log(self.db, self.path, self.headers['Referer'])
 
             print('path %s' % self.path)
             if self.path.startswith(my_address()):
@@ -385,10 +403,16 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--init-db', action='store_true', help='Create database tables')
     parser.add_argument('--dev', action='store_true', help='Serve UI through Angular development server (on localhost:4200)')
     parser.add_argument('-p', '--port', type=int, help='Port number to listen on', default=8000)
-    global conf
     conf = parser.parse_args()
+
+    if conf.init_db:
+        from local.sql import init_db
+        init_db(conf, engine)
+        print('Done')
+        sys.exit(0)
 
     server_address = ('', conf.port)
     httpd = ThreadingHTTPServer(server_address, ProxyRequestHandler)

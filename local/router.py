@@ -22,8 +22,9 @@ class Router:
                 request.path = '/'.join(path)
                 request.proxy_request()
             else:
-                request.send_response(404)
-                request.end_headers()
+                raise Exception('to do')
+                #request.send_response(404)
+                #request.end_headers()
         else:
             view(request)
 
