@@ -18,7 +18,7 @@ function downloadMatcher(url: UrlSegment[]) {
 }
 
 const routes: Routes = [
-  { path: 'download/:url', component: DownloadComponent,  }
+  { path: 'download/:id', component: DownloadComponent,  }
   // { matcher: downloadMatcher, component: DownloadComponent,  }
 ];
 

@@ -1,4 +1,8 @@
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+
 import { Download } from './download';
 
 @Injectable({
@@ -6,12 +10,9 @@ import { Download } from './download';
 })
 export class DownloadService {
 
-  constructor() { }
+  constructor(private http: HttpClient) { }
 
-  getDownload(): Download {
-    return {
-      id: 1,
-      url: 'http://pouet2/'
-    };
+  getDownload(id: number): Observable<Download> {
+    return this.http.get<Download>('/api/download/' + id);
   }
 }

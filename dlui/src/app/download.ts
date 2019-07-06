@@ -1,4 +1,9 @@
+import { Url } from './url';
+
 export class Download {
   id: number;
-  url: string;
+  url: Url;
+  data: string;
+  filesize: number;
+  state: string;
 }

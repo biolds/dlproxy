@@ -18,7 +18,9 @@ export class DownloadComponent implements OnInit {
   ) { }
 
   getDownload(): void {
-    this.download = this.downloadService.getDownload();
+    const id = +this.route.snapshot.paramMap.get('id');
+    this.downloadService.getDownload(id)
+      .subscribe(download => this.download = download);
   }
 
   ngOnInit() {
