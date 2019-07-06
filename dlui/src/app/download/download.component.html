@@ -1,1 +1,18 @@
-<p>download {{ download.id }} {{ download.url.url }} works!</p>
+<div *ngIf="download">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Download</mat-card-title>
+      <mat-card-subtitle>{{ download.url.url }}</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <mat-progress-bar color="primary" mode="determinate"
+          [value]="progress">
+      </mat-progress-bar>
+    </mat-card-content>
+    <mat-card-actions *ngIf="download.state === 'undecided'">
+      <button mat-button color="primary">Download</button>
+      <button mat-button color="primary">Save on proxy</button>
+      <button mat-button>Cancel</button>
+    </mat-card-actions>
+  </mat-card>
+</div>

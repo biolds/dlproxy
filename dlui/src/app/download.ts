@@ -3,7 +3,8 @@ import { Url } from './url';
 export class Download {
   id: number;
   url: Url;
-  data: string;
+  date: string;
   filesize: number;
+  current_size: number;
   state: string;
 }

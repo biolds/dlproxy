@@ -11,6 +11,7 @@ import { DownloadService } from '../download.service'
 })
 export class DownloadComponent implements OnInit {
   download: Download;
+  progress: number;
 
   constructor(
     private downloadService: DownloadService,
@@ -20,10 +21,14 @@ export class DownloadComponent implements OnInit {
   getDownload(): void {
     const id = +this.route.snapshot.paramMap.get('id');
     this.downloadService.getDownload(id)
-      .subscribe(download => this.download = download);
+      .subscribe(download => {
+        this.download = download;
+        this.progress = download.current_size / download.filesize * 100;
+      });
   }
 
   ngOnInit() {
+    this.progress = 0;
     this.getDownload();
   }
 }
