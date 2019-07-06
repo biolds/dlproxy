@@ -1,56 +1,23 @@
-import enum
-import json
 import mimetypes
 import os
-from datetime import datetime
 from http.server import BaseHTTPRequestHandler
 
 import urllib.parse
-from sqlalchemy.inspection import inspect
 
 from local.cacert import cacert
-from local.download import Download
+from local.download import download_view
 
 
 UI_PATH = 'dlui/dist/dlui/'
 UI_INDEX = 'index.html'
 
 
-def serialize(request, cls, obj_id, level):
-    obj_id = int(obj_id)
-    obj = request.db.query(cls).filter(cls.id == obj_id).one()
-
-    r = {}
-    for col in cls.__table__.columns:
-        val = getattr(obj, col.name)
-        if isinstance(val, datetime):
-            val = val.isoformat()
-        elif isinstance(val, enum.Enum):
-            val = val.name
-        r[col.name] = val
-
-    # Nest serialize relationship
-    if level > 0:
-        level -= 1
-        for key, val in inspect(cls).relationships.items():
-            rel_id_attr = list(val.local_columns)[0].name
-            rel_id = getattr(obj, rel_id_attr)
-            r[key] = serialize(request, val.argument, rel_id, level)
-
-    return r
-
-
-def api_detail_view(cls, level, request, obj_id):
-    r = serialize(request, cls, obj_id, level)
-    r = json.dumps(r).encode('ascii')
-    request.send_content_response(r, 'application/json')
-
-
 class Router:
     ROUTES = {
         'cacert': cacert,
         'api': {
-            'download': lambda req, obj: api_detail_view(Download, 1, req, obj)
+            # 'download': lambda req, obj: api_detail_view(Download, 1, req, obj)
+            'download': download_view
         }
     }
 
