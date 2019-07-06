@@ -52,8 +52,6 @@ download_html = '''
 </html>
 '''
 
-DEV = True
-
 my_hostname = socket.gethostname()
 conf = None
 
@@ -139,7 +137,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             print('path %s' % self.path)
             if self.path.startswith(my_address()):
-                router.handle(self)
+                global conf
+                router.handle(self, conf)
             else:
                 self.proxy_request()
             self.wfile.flush() #actually send the response if not already done.
@@ -351,11 +350,16 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         response = "%s %d %s\r\n" % (self.protocol_version, 200, 'OK')
         response = response.encode('ascii')
         self.wfile.write(response)
+
         self.send_header('Content-Type', content_type)
         self.send_header('Content-Length', len(content))
         self.send_header('Connection', 'close')
         self.end_headers()
-        self.wfile.write(content)
+
+        while len(content):
+            buf = content[:8 * 1024]
+            content = content[8 * 1024:]
+            self.wfile.write(buf)
 
     def send_download_page(self, path, filename, size, mimetype):
         # Redirect
