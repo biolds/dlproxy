@@ -1,8 +1,11 @@
 <div *ngIf="download">
   <mat-card>
     <mat-card-header>
-      <mat-card-title>{{ download.filename }} download</mat-card-title>
-      <mat-card-subtitle>{{ download.url.url }}</mat-card-subtitle>
+      <mat-card-title>{{ download.filename }}</mat-card-title>
+      <mat-card-subtitle>
+        {{ download.url.url }}<br/>
+        {{ size }} {{ download.mimetype }}
+      </mat-card-subtitle>
     </mat-card-header>
     <mat-card-content>
       <mat-progress-bar color="primary" mode="determinate"

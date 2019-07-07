@@ -1,3 +1,4 @@
+from http.server import HTTPStatus
 import json
 import os
 
@@ -16,6 +17,7 @@ class Download(Base):
     date = Column(DateTime, default=func.now())
     filesize = Column(BigInteger)
     filename = Column(String(4096))
+    mimetype = Column(String(64))
     to_keep = Column(Boolean, default=False)
     downloaded = Column(Boolean, default=False)
 
@@ -27,7 +29,7 @@ class Download(Base):
 def download_view(request, obj_id):
     r = serialize(request, Download, obj_id, 1)
     obj_id = int(obj_id)
-    download = request.db.query(Download).filter(Download.id == obj_id).one()
+    download = request.db.query(Download).get(obj_id)
 
     current_size = 0
     try:
@@ -43,11 +45,11 @@ def download_view(request, obj_id):
 
 def download_save(request, obj_id):
     if request.command != 'POST':
-        self.send_error(HTTPStatus.METHOD_NOT_ALLOWED)
+        request.send_error(HTTPStatus.METHOD_NOT_ALLOWED)
         return
 
     obj_id = int(obj_id)
-    download = request.db.query(Download).filter(Download.id == obj_id).one()
+    download = request.db.query(Download).get(obj_id)
     download.to_keep = True
     request.db.add(download)
     request.db.commit()
@@ -58,13 +60,52 @@ def download_save(request, obj_id):
 
 def download_delete(request, obj_id):
     if request.command != 'POST':
-        self.send_error(HTTPStatus.METHOD_NOT_ALLOWED)
+        request.send_error(HTTPStatus.METHOD_NOT_ALLOWED)
         return
 
     obj_id = int(obj_id)
-    download = request.db.query(Download).filter(Download.id == obj_id).one()
-    request.db.add(download)
+    download = request.db.query(Download).get(obj_id)
+    file_path = download.get_path_cache()
+    request.db.delete(download)
+    request.db.commit()
+    os.unlink(file_path)
+
+    request.send_content_response('{}'.encode('ascii'), 'application/json')
+
+def direct_download(request, obj_id):
+    if request.command != 'POST':
+        request.send_error(HTTPStatus.METHOD_NOT_ALLOWED)
+        return
+
+    obj_id = int(obj_id)
+    download = request.db.query(Download).get(obj_id)
+    request.db.delete(download)
     request.db.commit()
 
-    os.rename(download.get_path_cache(), 'downloads/' + download.filename)
-    request.send_content_response('{}'.encode('ascii'), 'application/json')
+    f = open(download.get_path_cache(), 'rb')
+    os.unlink(download.get_path_cache())
+
+    response = "%s %d %s\r\n" % (request.protocol_version, 200, 'OK')
+    response = response.encode('ascii')
+    request.wfile.write(response)
+    request.send_header('Content-Type', download.mimetype)
+    request.send_header('Content-Length', download.filesize)
+    request.send_header('Content-Disposition', 'attachment; filename="%s"' % downoad.filename)
+    request.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+    request.send_header('Pragma', 'no-cache')
+    request.send_header('Expires', '0')
+    request.send_header('Connection', 'close')
+    request.end_headers()
+
+    size = int(download.filesize)
+    while size:
+        n = 1024 if size > 1024 else size
+        buf = f.read(n)
+        if buf == 0:
+            sleep(1)
+            continue
+
+        request.wfile.write(buf)
+        size -= len(buf)
+    request.wfile.flush()
+    f.close()

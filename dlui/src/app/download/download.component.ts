@@ -13,6 +13,7 @@ export class DownloadComponent implements OnInit {
   download: Download;
   progress: number;
   dismissed: boolean;
+  size: string;
 
   constructor(
     private downloadService: DownloadService,
@@ -25,6 +26,18 @@ export class DownloadComponent implements OnInit {
       .subscribe(download => {
         this.download = download;
         this.progress = download.current_size / download.filesize * 100;
+
+
+        const unit = ['', 'k', 'M', 'G', 'T'];
+        let i = 0;
+        let size = download.filesize;
+
+        while (size > 1024) {
+          size /= 1024;
+          i++;
+        }
+        size = Math.round(size);
+        this.size = `${size}${unit[i]}B`;
       });
   }
 
@@ -39,7 +52,9 @@ export class DownloadComponent implements OnInit {
   }
 
   cancelDownload(): void {
-    
+    this.downloadService.deleteDownload(this.download.id).subscribe(() => {
+      window.history.back();
+    });
   }
 
   ngOnInit() {

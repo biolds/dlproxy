@@ -253,9 +253,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             download, filename = self._is_download(netloc, res)
             print('download:', download)
             if download:
-                filename = filename.remove('/').remove('\\').lstrip('.')
+                filename = filename.replace('/', '').replace('\\', '').lstrip('.')
                 db_url = Url.get_or_create(self.db, req.path)
-                download = Download(url=db_url, filesize=res.getheader('content-length', 0), filename=filename)
+                download = Download(url=db_url, filesize=res.getheader('content-length', 0), filename=filename, mimetype=res.getheader('content-type'))
                 fd = open(download.get_path_cache(), 'wb')
                 self.db.add(download)
                 self.db.commit()

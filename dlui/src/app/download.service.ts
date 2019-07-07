@@ -19,4 +19,8 @@ export class DownloadService {
   saveDownload(id: number): Observable<any> {
     return this.http.post(`/api/download/save/${id}`, {});
   }
+
+  deleteDownload(id: number): Observable<any> {
+    return this.http.post(`/api/download/delete/${id}`, {});
+  }
 }

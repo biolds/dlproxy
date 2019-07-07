@@ -6,6 +6,7 @@ export class Download {
   date: string;
   filesize: number;
   filename: string;
+  mimetype: string;
   current_size: number;
   to_keep: boolean;
   downloaded: boolean;
