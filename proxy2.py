@@ -15,7 +15,7 @@ import json
 import re
 import cgi
 from ipaddress import ip_address
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import HTTPServer, BaseHTTPRequestHandler, HTTPStatus
 from socketserver import ThreadingMixIn
 from io import StringIO, BytesIO
 from subprocess import Popen, PIPE
@@ -253,13 +253,14 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             download, filename = self._is_download(netloc, res)
             print('download:', download)
             if download:
+                filename = filename.remove('/').remove('\\').lstrip('.')
                 db_url = Url.get_or_create(self.db, req.path)
-                download = Download(url=db_url, filesize=res.getheader('content-length', 0))
+                download = Download(url=db_url, filesize=res.getheader('content-length', 0), filename=filename)
                 fd = open(download.get_path_cache(), 'wb')
                 self.db.add(download)
                 self.db.commit()
                 self.send_response(302)
-                self.send_header('Location', my_address('/download/%s' % download.id))
+                self.send_header('Location', my_address('download/%s' % download.id))
                 self.end_headers()
             else:
                 response = "%s %d %s\r\n" % (self.protocol_version, res.status, res.reason)

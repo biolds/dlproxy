@@ -5,6 +5,8 @@ export class Download {
   url: Url;
   date: string;
   filesize: number;
+  filename: string;
   current_size: number;
-  state: string;
+  to_keep: boolean;
+  downloaded: boolean;
 }

@@ -13,6 +13,10 @@ export class DownloadService {
   constructor(private http: HttpClient) { }
 
   getDownload(id: number): Observable<Download> {
-    return this.http.get<Download>('/api/download/' + id);
+    return this.http.get<Download>(`/api/download/get/${id}`);
+  }
+
+  saveDownload(id: number): Observable<any> {
+    return this.http.post(`/api/download/save/${id}`, {});
   }
 }

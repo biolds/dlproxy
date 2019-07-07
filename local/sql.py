@@ -31,4 +31,5 @@ class Url(Base):
 def init_db(conf, engine):
     import local.access
     import local.download
+    Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)

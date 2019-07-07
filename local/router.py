@@ -5,7 +5,7 @@ from http.server import BaseHTTPRequestHandler
 import urllib.parse
 
 from local.cacert import cacert
-from local.download import download_view
+from local.download import download_view, download_save
 
 
 UI_PATH = 'dlui/dist/dlui/'
@@ -17,7 +17,10 @@ class Router:
         'cacert': cacert,
         'api': {
             # 'download': lambda req, obj: api_detail_view(Download, 1, req, obj)
-            'download': download_view
+            'download': {
+                'get': download_view,
+                'save': download_save
+            }
         }
     }
 

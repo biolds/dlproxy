@@ -1,18 +1,11 @@
-import enum
 import json
 import os
 
-from sqlalchemy import BigInteger, Column, DateTime, Enum, ForeignKey, Integer, String, func
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import relationship
 
 from local.sql import Base, Url
 from local.view import serialize
-
-
-class DownloadState(enum.Enum):
-    undecided = 0
-    in_progress = 1
-    finished = 2
 
 
 class Download(Base):
@@ -22,7 +15,10 @@ class Download(Base):
     url = relationship(Url)
     date = Column(DateTime, default=func.now())
     filesize = Column(BigInteger)
-    state = Column(Enum(DownloadState), default=DownloadState.undecided)
+    filename = Column(String(4096))
+    to_keep = Column(Boolean, default=False)
+    downloaded = Column(Boolean, default=False)
+
 
     def get_path_cache(self):
         return 'cache/' + self.url.url.replace('/', '_')
@@ -43,3 +39,32 @@ def download_view(request, obj_id):
     r['current_size'] = current_size
     r = json.dumps(r).encode('ascii')
     request.send_content_response(r, 'application/json')
+
+
+def download_save(request, obj_id):
+    if request.command != 'POST':
+        self.send_error(HTTPStatus.METHOD_NOT_ALLOWED)
+        return
+
+    obj_id = int(obj_id)
+    download = request.db.query(Download).filter(Download.id == obj_id).one()
+    download.to_keep = True
+    request.db.add(download)
+    request.db.commit()
+
+    os.rename(download.get_path_cache(), 'downloads/' + download.filename)
+    request.send_content_response('{}'.encode('ascii'), 'application/json')
+
+
+def download_delete(request, obj_id):
+    if request.command != 'POST':
+        self.send_error(HTTPStatus.METHOD_NOT_ALLOWED)
+        return
+
+    obj_id = int(obj_id)
+    download = request.db.query(Download).filter(Download.id == obj_id).one()
+    request.db.add(download)
+    request.db.commit()
+
+    os.rename(download.get_path_cache(), 'downloads/' + download.filename)
+    request.send_content_response('{}'.encode('ascii'), 'application/json')

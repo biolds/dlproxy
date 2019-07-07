@@ -12,11 +12,12 @@ import { DownloadService } from '../download.service'
 export class DownloadComponent implements OnInit {
   download: Download;
   progress: number;
+  dismissed: boolean;
 
   constructor(
     private downloadService: DownloadService,
     private route: ActivatedRoute
-  ) { }
+  ) {}
 
   getDownload(): void {
     const id = +this.route.snapshot.paramMap.get('id');
@@ -27,8 +28,23 @@ export class DownloadComponent implements OnInit {
       });
   }
 
+  fileDownload(): void {
+    this.dismissed = true;
+  }
+
+  saveDownload(): void {
+    this.downloadService.saveDownload(this.download.id).subscribe(() => {
+      window.history.back();
+    });
+  }
+
+  cancelDownload(): void {
+    
+  }
+
   ngOnInit() {
     this.progress = 0;
+    this.dismissed = false;
     this.getDownload();
   }
 }
