@@ -1,5 +1,5 @@
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
@@ -12,8 +12,36 @@ export class DownloadService {
 
   constructor(private http: HttpClient) { }
 
+  private handleError<T> (operation = 'operation', result?: T) {
+    return (error: any): Observable<T> => {
+
+      // TODO: send the error to remote logging infrastructure
+      console.error(error); // log to console instead
+
+      // TODO: better job of transforming error for user consumption
+      console.log(`${operation} failed: ${error.message}`);
+
+      // Let the app keep running by returning an empty result.
+      return of(result as T);
+    };
+  }
+
+
   getDownload(id: number): Observable<Download> {
-    return this.http.get<Download>(`/api/download/get/${id}`);
+    return this.http.get<Download>(`/api/download/get/${id}`)
+      .pipe(
+        catchError(this.handleError<Download>('getDownload', {
+          id: 0,
+          url: {id: 0, url: ''},
+          date: '',
+          filesize: 0,
+          filename: '',
+          mimetype: '',
+          current_size: 0,
+          to_keep: false,
+          downloaded: false
+        }))
+      );
   }
 
   saveDownload(id: number): Observable<any> {

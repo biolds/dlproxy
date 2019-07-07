@@ -4,6 +4,7 @@ import os
 
 from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import relationship
+from sqlalchemy.orm.exc import NoResultFound
 
 from local.sql import Base, Url
 from local.view import serialize
@@ -27,10 +28,15 @@ class Download(Base):
 
 
 def download_view(request, obj_id):
-    r = serialize(request, Download, obj_id, 1)
     obj_id = int(obj_id)
-    download = request.db.query(Download).get(obj_id)
 
+    try:
+        r = serialize(request, Download, obj_id, 1)
+    except NoResultFound:
+        request.send_error(HTTPStatus.NOT_FOUND)
+        return
+
+    download = request.db.query(Download).get(obj_id)
     current_size = 0
     try:
         statinfo = os.stat(download.get_path_cache())
@@ -73,31 +79,36 @@ def download_delete(request, obj_id):
     request.send_content_response('{}'.encode('ascii'), 'application/json')
 
 def direct_download(request, obj_id):
-    if request.command != 'POST':
+    obj_id = int(obj_id)
+    download = request.db.query(Download).get(obj_id)
+
+    if download.to_keep:
         request.send_error(HTTPStatus.METHOD_NOT_ALLOWED)
         return
 
-    obj_id = int(obj_id)
-    download = request.db.query(Download).get(obj_id)
+    filename = download.filename
+    filesize = download.filesize
+    mime = download.mimetype
+    filepath = download.get_path_cache()
     request.db.delete(download)
     request.db.commit()
 
-    f = open(download.get_path_cache(), 'rb')
-    os.unlink(download.get_path_cache())
+    f = open(filepath, 'rb')
+    os.unlink(filepath)
 
     response = "%s %d %s\r\n" % (request.protocol_version, 200, 'OK')
     response = response.encode('ascii')
     request.wfile.write(response)
-    request.send_header('Content-Type', download.mimetype)
-    request.send_header('Content-Length', download.filesize)
-    request.send_header('Content-Disposition', 'attachment; filename="%s"' % downoad.filename)
+    request.send_header('Content-Type', mime)
+    request.send_header('Content-Length', filesize)
+    request.send_header('Content-Disposition', 'attachment; filename="%s"' % filename)
     request.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
     request.send_header('Pragma', 'no-cache')
     request.send_header('Expires', '0')
     request.send_header('Connection', 'close')
     request.end_headers()
 
-    size = int(download.filesize)
+    size = int(filesize)
     while size:
         n = 1024 if size > 1024 else size
         buf = f.read(n)

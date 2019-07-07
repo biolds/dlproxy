@@ -13,7 +13,7 @@
       </mat-progress-bar>
     </mat-card-content>
     <mat-card-actions *ngIf="!download.to_keep">
-      <a mat-button color="primary" (click)="fileDownload()" >Download now</a>
+      <button mat-button color="primary" (click)="fileDownload()" >Download now</button>
       <button mat-button color="primary" (click)="saveDownload()">Save on proxy</button>
       <button mat-button color="warn" (click)="cancelDownload()">Cancel</button>
     </mat-card-actions>

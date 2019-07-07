@@ -12,8 +12,9 @@ import { DownloadService } from '../download.service'
 export class DownloadComponent implements OnInit {
   download: Download;
   progress: number;
-  dismissed: boolean;
+  downloadStarted: boolean;
   size: string;
+  interval: number;
 
   constructor(
     private downloadService: DownloadService,
@@ -24,9 +25,12 @@ export class DownloadComponent implements OnInit {
     const id = +this.route.snapshot.paramMap.get('id');
     this.downloadService.getDownload(id)
       .subscribe(download => {
+        if (this.downloadStarted && download.id === 0) {
+          window.history.back();
+        }
+
         this.download = download;
         this.progress = download.current_size / download.filesize * 100;
-
 
         const unit = ['', 'k', 'M', 'G', 'T'];
         let i = 0;
@@ -37,12 +41,13 @@ export class DownloadComponent implements OnInit {
           i++;
         }
         size = Math.round(size);
-        this.size = `${size}${unit[i]}B`;
+        this.size = `${size} ${unit[i]}B`;
       });
   }
 
   fileDownload(): void {
-    this.dismissed = true;
+    this.downloadStarted = true;
+    window.location.pathname = `/direct_download/${this.download.id}`;
   }
 
   saveDownload(): void {
@@ -59,7 +64,10 @@ export class DownloadComponent implements OnInit {
 
   ngOnInit() {
     this.progress = 0;
-    this.dismissed = false;
+    this.downloadStarted = false;
     this.getDownload();
+    this.interval = setInterval(() => {
+        this.getDownload();
+    }, 5000);
   }
 }

@@ -357,8 +357,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
         while len(content):
-            buf = content[:8 * 1024]
-            content = content[8 * 1024:]
+            buf = content[:1024]
+            content = content[1024:]
             self.wfile.write(buf)
 
     def send_download_page(self, path, filename, size, mimetype):
