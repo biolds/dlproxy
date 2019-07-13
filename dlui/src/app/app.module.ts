@@ -11,13 +11,21 @@ import { MatToolbarModule } from '@angular/material';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTabsModule } from '@angular/material/tabs';
+
 import { ErrorComponent } from './error/error.component';
+import { MaintabsComponent } from './maintabs/maintabs.component';
+import { SettingsComponent } from './settings/settings.component';
+import { DownloadsComponent } from './downloads/downloads.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     DownloadComponent,
-    ErrorComponent
+    ErrorComponent,
+    MaintabsComponent,
+    SettingsComponent,
+    DownloadsComponent
   ],
   imports: [
     BrowserModule,
@@ -27,7 +35,8 @@ import { ErrorComponent } from './error/error.component';
     MatToolbarModule,
     MatButtonModule,
     MatCardModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    MatTabsModule
   ],
   providers: [],
   bootstrap: [AppComponent]

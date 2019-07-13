@@ -8,6 +8,13 @@ from sqlalchemy.orm.exc import NoResultFound
 Base = declarative_base()
 
 
+class Settings(Base):
+    __tablename__ = 'settings'
+    id = Column(Integer, primary_key=True)
+    ca_cert = Column(String(1024))
+    ca_key = Column(String(1024))
+
+
 class Url(Base):
     __tablename__ = 'url'
     id = Column(Integer, primary_key=True)

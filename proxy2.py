@@ -162,7 +162,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             return
 
         args = []
-        if self.command == 'GET':
+        if self.command == 'GET' and inject:
             args = [True]
 
         method = getattr(self, mname)
