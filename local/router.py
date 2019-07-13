@@ -4,14 +4,15 @@ from http.server import BaseHTTPRequestHandler
 
 import urllib.parse
 
-from local.cacert import cacert
+from local.cacert import cacert_download, cacert_generate
 from local.download import download_delete, download_view, download_save, direct_download
+from local.settings import settings_view
 from local.index import render_index, UI_INDEX, UI_PATH
 
 
 class Router:
     ROUTES = {
-        'cacert': cacert,
+        'cacert_download': cacert_download,
         'direct_download': direct_download,
         'api': {
             # 'download': lambda req, obj: api_detail_view(Download, 1, req, obj)
@@ -19,7 +20,11 @@ class Router:
                 'get': download_view,
                 'save': download_save,
                 'delete': download_delete
-            }
+            },
+            'cacert': {
+                'generate': cacert_generate,
+            },
+            'settings': settings_view
         }
     }
 
@@ -68,6 +73,7 @@ class Router:
                     with open(path, 'rb') as p:
                         request.send_content_response(p.read(), mime, mime == 'application/javascript')
         else:
+            print('params:', _path)
             view(request, *_path)
 
 router = Router()

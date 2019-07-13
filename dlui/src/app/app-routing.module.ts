@@ -42,7 +42,8 @@ const routes: Routes = [
       { path: 'downloads', component: DownloadsComponent },
       { path: '', component: SettingsComponent }
     ]
-  }
+  },
+  { path: '**', component: ErrorComponent, },
   // { matcher: downloadMatcher, component: DownloadComponent, }
 ];
 

@@ -1,1 +1,18 @@
-<p>settings works!</p>
+<div class="settings-div">
+  <form [formGroup]="settingsForm">
+    <mat-form-field>
+      <textarea matInput formControlName="ca_cert" placeholder="CA certificate"></textarea>
+    </mat-form-field>
+    <mat-form-field>
+      <textarea matInput formControlName="ca_key" placeholder="CA key"></textarea>
+    </mat-form-field>
+    <button mat-raised-button color="secondary" (click)="generateNew()">
+      <mat-icon>build</mat-icon>
+      Generate CA certificate and key
+    </button>
+    <button mat-raised-button color="primary" (click)="onSubmit()">
+      <mat-icon>done</mat-icon>
+      Save
+    </button>
+  </form>
+</div>

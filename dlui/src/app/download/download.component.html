@@ -13,9 +13,18 @@
       </mat-progress-bar>
     </mat-card-content>
     <mat-card-actions *ngIf="!download.to_keep">
-      <button mat-button color="primary" (click)="fileDownload()" >Download now</button>
-      <button mat-button color="primary" (click)="saveDownload()">Save on proxy</button>
-      <button mat-button color="warn" (click)="cancelDownload()">Cancel</button>
+      <button mat-raised-button color="primary" (click)="fileDownload()" >
+        <mat-icon>save_alt</mat-icon>
+        Download now
+      </button>
+      <button mat-raised-button color="primary" (click)="saveDownload()">
+        <mat-icon>cloud_download</mat-icon>
+        Save on proxy
+      </button>
+      <button mat-raised-button color="warn" (click)="cancelDownload()">
+        <mat-icon>close</mat-icon>
+        Cancel
+      </button>
     </mat-card-actions>
   </mat-card>
 </div>
