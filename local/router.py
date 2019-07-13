@@ -6,10 +6,7 @@ import urllib.parse
 
 from local.cacert import cacert
 from local.download import download_delete, download_view, download_save, direct_download
-
-
-UI_PATH = 'dlui/dist/dlui/'
-UI_INDEX = 'index.html'
+from local.index import render_index, UI_INDEX, UI_PATH
 
 
 class Router:
@@ -42,7 +39,6 @@ class Router:
             print('viiew:', view)
 
         if view is None or isinstance(view, dict):
-            #from proxy2 import conf
             if conf.dev:
                 path = request.path.split('/')
                 path[2] = '127.0.0.1:4200'
@@ -62,11 +58,14 @@ class Router:
                 path = UI_PATH + path
                 print('want ', path)
                 if not os.path.isfile(path):
-                    path = UI_PATH + '/' + UI_INDEX
+                    path = UI_PATH + UI_INDEX
 
-                mime = mimetypes.guess_type(path)[0]
-                with open(path, 'rb') as p:
-                    request.send_content_response(p.read(), mime)
+                if path == UI_PATH + UI_INDEX:
+                    request.send_content_response(render_index(conf, 'angular'), 'text/html')
+                else:
+                    mime = mimetypes.guess_type(path)[0]
+                    with open(path, 'rb') as p:
+                        request.send_content_response(p.read(), mime, mime == 'application/javascript')
         else:
             view(request, *_path)
 

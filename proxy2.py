@@ -22,9 +22,11 @@ from subprocess import Popen, PIPE
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm.exc import NoResultFound
 
 from local.access import UrlAccess
 from local.download import Download
+from local.index import load_index_content, render_index
 from local.router import router
 from local.sql import Base, Url
 
@@ -140,13 +142,17 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 global conf
                 router.handle(self, conf)
             else:
+                raise Exception('blah')
                 self.proxy_request()
             self.wfile.flush() #actually send the response if not already done.
         except socket.timeout as e:
-            #a read or a write timed out.  Discard this connection
             self.log_error("Request timed out: %r", e)
+            #a read or a write timed out.  Discard this connection
             self.close_connection = True
-            return
+        except Exception as e:
+            self.log_error("Exception: %r", e)
+            self.render_index(HTTPStatus.INTERNAL_SERVER_ERROR, 'error', exception=e)
+            self.close_connection = True
 
     def proxy_request(self):
         mname = 'do_' + self.command
@@ -158,12 +164,32 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         method = getattr(self, mname)
         method()
 
+    def render_index(self, status, *args, **kwargs):
+        response = "%s %d %s\r\n" % (self.protocol_version, status.value, status.name)
+        response = response.encode('ascii')
+        self.wfile.write(response)
+
+        global conf
+        content = render_index(conf, *args, **kwargs)
+        self.send_header('Content-Type', 'text/html')
+        self.send_header('Content-Length', len(content))
+        self.send_header('Connection', 'close')
+        self.end_headers()
+
+        while len(content):
+            buf = content[:1024]
+            content = content[1024:]
+            self.wfile.write(buf)
+
     def log_error(self, format, *args):
         # surpress "Request timed out: timeout('timed out',)"
         if isinstance(args[0], socket.timeout):
             return
 
-        self.log_message(format, *args)
+        from traceback import format_exception
+        ex = args[0]
+        exc = ''.join(format_exception(etype=type(ex), value=ex, tb=ex.__traceback__))
+        self.log_message(format + '\n' + exc, *args)
 
     def do_CONNECT(self):
         if os.path.isfile(self.cakey) and os.path.isfile(self.cacert) and os.path.isfile(self.certkey) and os.path.isdir(self.certdir):
@@ -260,6 +286,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 self.db.add(download)
                 self.db.commit()
                 self.send_response(302)
+                download_id = download.id
                 self.send_header('Location', my_address('download/%s' % download.id))
                 self.end_headers()
             else:
@@ -277,6 +304,15 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 if len(res_body) == 0:
                     break
                 fd.write(res_body)
+
+                # Check the entry in the db still exists, to cancel the download otherwise
+                if download:
+                    try:
+                        self.db.flush()
+                        self.db.query(Download).get(download.id)
+                    except NoResultFound:
+                        print('CANCELED')
+                        break
 
             fd.flush()
             self.log_request(res.status, res.reason)
@@ -345,8 +381,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 _headers.append((key, val))
         return _headers
 
-    def send_content_response(self, content, content_type):
-        #content_type = content_type.encode('ascii')
+    def send_content_response(self, content, content_type, allow_origin=False):
         response = "%s %d %s\r\n" % (self.protocol_version, 200, 'OK')
         response = response.encode('ascii')
         self.wfile.write(response)
@@ -354,6 +389,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', content_type)
         self.send_header('Content-Length', len(content))
         self.send_header('Connection', 'close')
+        if allow_origin:
+            self.send_header('Access-Control-Allow-Origin', 'http://piggledy.org')
+            self.send_header('Vary', 'Origin')
         self.end_headers()
 
         while len(content):
@@ -427,6 +465,7 @@ if __name__ == '__main__':
         print('Done')
         sys.exit(0)
 
+    load_index_content(my_address())
     server_address = ('', conf.port)
     httpd = ThreadingHTTPServer(server_address, ProxyRequestHandler)
 
