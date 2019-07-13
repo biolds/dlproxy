@@ -64,7 +64,7 @@ DBSession = scoped_session(session_factory)
 
 def my_address(path=None):
     global conf
-    addr = 'http://%s:%s/' % (my_hostname, conf.port)
+    addr = conf.url
     if path:
         addr += path
     return addr
@@ -142,7 +142,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 global conf
                 router.handle(self, conf)
             else:
-                raise Exception('blah')
                 self.proxy_request()
             self.wfile.flush() #actually send the response if not already done.
         except socket.timeout as e:
@@ -154,15 +153,20 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             self.render_index(HTTPStatus.INTERNAL_SERVER_ERROR, 'error', exception=e)
             self.close_connection = True
 
-    def proxy_request(self):
+    def proxy_request(self, inject=False):
         mname = 'do_' + self.command
         if not hasattr(self, mname):
             self.send_error(
                 HTTPStatus.NOT_IMPLEMENTED,
                 "Unsupported method (%r)" % self.command)
             return
+
+        args = []
+        if self.command == 'GET':
+            args = [True]
+
         method = getattr(self, mname)
-        method()
+        method(*args)
 
     def render_index(self, status, *args, **kwargs):
         response = "%s %d %s\r\n" % (self.protocol_version, status.value, status.name)
@@ -170,6 +174,17 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(response)
 
         global conf
+        if conf.dev and 'index' not in kwargs:
+            # For error handling with the dev server index.html on angular dev server
+            # is requested
+            origin = ('http://', '127.0.0.1:4200')
+            if not origin in self.tls.conns:
+                self.tls.conns[origin] = http.client.HTTPConnection('127.0.0.1:4200', timeout=self.timeout)
+            conn = self.tls.conns[origin]
+            conn.request('GET', '/', None, {'Accept': 'text/html'})
+            res = conn.getresponse()
+            kwargs['index'] = res.read()
+
         content = render_index(conf, *args, **kwargs)
         self.send_header('Content-Type', 'text/html')
         self.send_header('Content-Length', len(content))
@@ -186,10 +201,14 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         if isinstance(args[0], socket.timeout):
             return
 
+        self.log_message(format, *args)
+
         from traceback import format_exception
         ex = args[0]
-        exc = ''.join(format_exception(etype=type(ex), value=ex, tb=ex.__traceback__))
-        self.log_message(format + '\n' + exc, *args)
+        if isinstance(ex, Exception):
+            exc = ''.join(format_exception(etype=type(ex), value=ex, tb=ex.__traceback__))
+            print('exc')
+            self.log_message(exc)
 
     def do_CONNECT(self):
         if os.path.isfile(self.cakey) and os.path.isfile(self.cacert) and os.path.isfile(self.certkey) and os.path.isdir(self.certdir):
@@ -247,7 +266,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                     break
                 other.sendall(data)
 
-    def do_GET(self):
+    def do_GET(self, inject=False):
         req = self
         content_length = int(req.headers.get('Content-Length', 0))
         req_body = self.rfile.read(content_length) if content_length else None
@@ -278,6 +297,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             setattr(res, 'response_version', version_table[res.version])
             download, filename = self._is_download(netloc, res)
             print('download:', download)
+            if inject:
+                print('inject/content-type:', res.getheader('content-type'))
+
             if download:
                 filename = filename.replace('/', '').replace('\\', '').lstrip('.')
                 db_url = Url.get_or_create(self.db, req.path)
@@ -289,6 +311,11 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 download_id = download.id
                 self.send_header('Location', my_address('download/%s' % download.id))
                 self.end_headers()
+            elif inject and conf.dev is True and (res.getheader('content-type') == 'text/html'
+                                                or res.getheader('content-type',  '').startswith('text/html;')):
+                print('injecting live')
+                self.render_index(HTTPStatus.OK, 'angular', index=res.read())
+                return
             else:
                 response = "%s %d %s\r\n" % (self.protocol_version, res.status, res.reason)
                 self.wfile.write(response.encode('ascii'))
@@ -454,9 +481,11 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    default_url = 'http://%s:%i/' % (my_hostname, 8000)
     parser.add_argument('--init-db', action='store_true', help='Create database tables')
     parser.add_argument('--dev', action='store_true', help='Serve UI through Angular development server (on localhost:4200)')
     parser.add_argument('-p', '--port', type=int, help='Port number to listen on', default=8000)
+    parser.add_argument('-u', '--url', type=int, help='Public url (default %s)' % default_url, default=None)
     conf = parser.parse_args()
 
     if conf.init_db:
@@ -465,7 +494,12 @@ if __name__ == '__main__':
         print('Done')
         sys.exit(0)
 
-    load_index_content(my_address())
+    if conf.url is None:
+        conf.url = 'http://%s:%i/' % (my_hostname, conf.port)
+
+    if not conf.dev:
+        load_index_content(conf)
+
     server_address = ('', conf.port)
     httpd = ThreadingHTTPServer(server_address, ProxyRequestHandler)
 

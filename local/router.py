@@ -43,7 +43,8 @@ class Router:
                 path = request.path.split('/')
                 path[2] = '127.0.0.1:4200'
                 request.path = '/'.join(path)
-                request.proxy_request()
+                print('proxy with inject')
+                request.proxy_request(inject=True)
             else:
                 path = path.lstrip('/')
                 if path == '':
