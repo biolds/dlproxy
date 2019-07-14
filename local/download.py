@@ -24,7 +24,7 @@ class Download(Base):
 
 
     def get_path_cache(self):
-        return 'cache/' + self.url.url.replace('/', '_')
+        return 'cache/%i' % self.id
 
 
 def download_view(request, obj_id):

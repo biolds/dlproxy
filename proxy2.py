@@ -318,10 +318,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 filename = filename.replace('/', '').replace('\\', '').lstrip('.')
                 db_url = Url.get_or_create(self.db, req.path)
                 download = Download(url=db_url, filesize=res.getheader('content-length', 0), filename=filename, mimetype=res.getheader('content-type'))
-                fd = open(download.get_path_cache(), 'wb')
                 self.db.add(download)
                 self.db.commit()
                 self.send_response(302)
+                fd = open(download.get_path_cache(), 'wb')
                 download_id = download.id
                 self.send_header('Location', my_address('download/%s' % download.id))
                 self.end_headers()
@@ -376,12 +376,28 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         if ip_addr.is_private:
             return False, None
 
+
+        #if netloc in ('googleads.g.doubleclick.net',):
+        #    return False, None
+
+        content_type = res.getheader('Content-Type', '')
+        if ';' in content_type:
+            content_type = content_type.split(';', 1)[0]
+
+        for mime in ('application/x-font', 'application/font', 'application/vnd.'):
+            if content_type.startswith(mime):
+                return False, None
+
+
         print('headers:', res.getheaders())
         disposition = res.getheader('Content-Disposition', '')
         #if disposition.startswith('inline;'):
         #    return False, None
 
-        if disposition.startswith('attachment;') or disposition.startswith('inline;'):
+        if disposition == 'attachment':
+            return False, None
+
+        if disposition.startswith('attachment;'):
             disps = [disp.strip() for disp in disposition.split(';')][1:]
             for disp in disps:
                 # TODO: select utf8 filename if present
@@ -391,17 +407,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                     disp = disp.strip('"')
                     return True, disp
 
-        content_type = res.getheader('Content-Type', '')
-        if ';' in content_type:
-            content_type = content_type.split(';', 1)[0]
 
         print('type:', content_type)
         if not content_type.startswith('application/'):
             return False, None
-        for mime in ('application/x-font', 'application/font', 'application/vnd.'):
-            if content_type.startswith(mime):
-                return False, None
-
         if content_type in ('application/javascript', 'application/x-javascript',
                 'application/x-www-form-urlencoded', 'application/json'):
             return False, None
