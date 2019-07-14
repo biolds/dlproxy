@@ -29,6 +29,20 @@ def serialize(request, cls, obj_id, level):
     return r
 
 
+def list_serialize(request, cls, _filter, level):
+    objs = request.db.query(cls).filter_by(**_filter)
+
+    r = {
+        'count': objs.count(),
+        'objs': []
+    }
+
+    for obj in objs:
+        r['objs'].append(serialize(request, cls, obj.id, level))
+
+    return r
+
+
 def api_detail_view(cls, level, request, obj_id):
     r = serialize(request, cls, obj_id, level)
     r = json.dumps(r).encode('ascii')

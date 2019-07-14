@@ -4,6 +4,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 import { Download } from './download';
+import { ObjList } from './objlist';
 
 @Injectable({
   providedIn: 'root'
@@ -26,7 +27,6 @@ export class DownloadService {
     };
   }
 
-
   getDownload(id: number): Observable<Download> {
     return this.http.get<Download>(`/api/download/get/${id}`)
       .pipe(
@@ -42,6 +42,10 @@ export class DownloadService {
           downloaded: false
         }))
       );
+  }
+
+  downloadList(): Observable<ObjList<Download>> {
+    return this.http.get<ObjList<Download>>(`/api/downloads`);
   }
 
   saveDownload(id: number): Observable<any> {

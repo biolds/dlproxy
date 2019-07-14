@@ -142,8 +142,11 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             db_url = UrlAccess.log(self.db, self.path, self.headers['Referer'])
 
-            print('path %s' % self.path)
-            if self.path.startswith(my_address()):
+            my_addr = my_address().rstrip('/')
+            my_addr = my_addr[len('http://'):]
+
+            print('path %s / %s' % (self.path, my_addr))
+            if self.path.startswith(my_address()) or self.path == my_addr:
                 global conf
                 router.handle(self, conf)
             else:
@@ -154,6 +157,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             #a read or a write timed out.  Discard this connection
             self.close_connection = True
         except Exception as e:
+            self.log_message("Exception on %s", self.path)
             self.log_error("Exception: %r", e)
             self.render_index(HTTPStatus.INTERNAL_SERVER_ERROR, 'error', exception=e)
             self.close_connection = True
@@ -377,8 +381,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             return False, None
 
 
-        #if netloc in ('googleads.g.doubleclick.net',):
-        #    return False, None
+        if netloc in ('googleads.g.doubleclick.net', 'sb-ssl.google.com'):
+            return False, None
 
         content_type = res.getheader('Content-Type', '')
         if ';' in content_type:

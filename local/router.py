@@ -5,7 +5,7 @@ from http.server import BaseHTTPRequestHandler
 import urllib.parse
 
 from local.cacert import cacert_download, cacert_generate
-from local.download import download_delete, download_view, download_save, direct_download
+from local.download import download_delete, downloads_view, download_view, download_save, direct_download
 from local.settings import settings_view
 from local.index import render_index, UI_INDEX, UI_PATH
 
@@ -16,6 +16,7 @@ class Router:
         'direct_download': direct_download,
         'api': {
             # 'download': lambda req, obj: api_detail_view(Download, 1, req, obj)
+            'downloads': downloads_view,
             'download': {
                 'get': download_view,
                 'save': download_save,
@@ -45,9 +46,13 @@ class Router:
 
         if view is None or isinstance(view, dict):
             if conf.dev:
-                path = request.path.split('/')
-                path[2] = '127.0.0.1:4200'
-                request.path = '/'.join(path)
+                print('request.path: %s' % request.path)
+                if '/' in request.path:
+                    path = request.path.split('/')
+                    path[2] = '127.0.0.1:4200'
+                    request.path = '/'.join(path)
+                else:
+                    request.path = '127.0.0.1:4200'
                 print('proxy with inject')
                 request.proxy_request(inject=True)
             else:

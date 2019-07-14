@@ -1,4 +1,7 @@
 import { Component, OnInit } from '@angular/core';
+import { DownloadService } from '../download.service';
+import { Download } from '../download';
+import { ObjList } from '../objlist';
 
 @Component({
   selector: 'app-downloads',
@@ -6,10 +9,20 @@ import { Component, OnInit } from '@angular/core';
   styleUrls: ['./downloads.component.css']
 })
 export class DownloadsComponent implements OnInit {
+  downloads: ObjList<Download>;
 
-  constructor() { }
+  constructor(
+    private downloadService: DownloadService,
+  ) { }
 
-  ngOnInit() {
+  getDownloads(): void {
+    this.downloadService.downloadList().subscribe((downloads) => {
+      this.downloads = downloads;
+      console.log('got downloads:', downloads);
+    })
   }
 
+  ngOnInit() {
+    this.getDownloads();
+  }
 }

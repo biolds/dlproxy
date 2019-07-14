@@ -1,8 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
 import { Download } from '../download';
-import { DownloadService } from '../download.service'
+import { DownloadService } from '../download.service';
 
 @Component({
   selector: 'app-download',
@@ -10,6 +10,7 @@ import { DownloadService } from '../download.service'
   styleUrls: ['./download.component.css']
 })
 export class DownloadComponent implements OnInit {
+  @Input() downloadData: Download;
   download: Download;
   progress: number;
   downloadStarted: boolean;
@@ -21,6 +22,22 @@ export class DownloadComponent implements OnInit {
     private route: ActivatedRoute
   ) {}
 
+  loadData(download: Download): void {
+    this.download = download;
+    this.progress = download.current_size / download.filesize * 100;
+
+    const unit = ['', 'k', 'M', 'G', 'T'];
+    let i = 0;
+    let size = download.filesize;
+
+    while (size > 1024) {
+      size /= 1024;
+      i++;
+    }
+    size = Math.round(size);
+    this.size = `${size} ${unit[i]}B`;
+  }
+
   getDownload(): void {
     const id = +this.route.snapshot.paramMap.get('id');
     this.downloadService.getDownload(id)
@@ -29,19 +46,7 @@ export class DownloadComponent implements OnInit {
           window.history.back();
         }
 
-        this.download = download;
-        this.progress = download.current_size / download.filesize * 100;
-
-        const unit = ['', 'k', 'M', 'G', 'T'];
-        let i = 0;
-        let size = download.filesize;
-
-        while (size > 1024) {
-          size /= 1024;
-          i++;
-        }
-        size = Math.round(size);
-        this.size = `${size} ${unit[i]}B`;
+        this.loadData(download);
       });
   }
 
@@ -65,9 +70,13 @@ export class DownloadComponent implements OnInit {
   ngOnInit() {
     this.progress = 0;
     this.downloadStarted = false;
-    this.getDownload();
-    this.interval = setInterval(() => {
-        this.getDownload();
-    }, 5000);
+    if (this.downloadData) {
+      this.loadData(this.downloadData);
+    } else {
+      this.getDownload();
+      this.interval = setInterval(() => {
+          this.getDownload();
+      }, 5000);
+    }
   }
 }

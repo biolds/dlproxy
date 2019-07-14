@@ -7,7 +7,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
 
 from local.sql import Base, Url
-from local.view import serialize
+from local.view import list_serialize, serialize
 
 
 class Download(Base):
@@ -27,6 +27,15 @@ class Download(Base):
         return 'cache/%i' % self.id
 
 
+def downloads_view(request):
+    downloads = list_serialize(request, Download, {'to_keep': True}, 1)
+    for d in downloads['objs']:
+        d['current_size'] = d['filesize']
+
+    downloads = json.dumps(downloads).encode('ascii')
+    request.send_content_response(downloads, 'application/json')
+
+
 def download_view(request, obj_id):
     obj_id = int(obj_id)
 
@@ -37,13 +46,13 @@ def download_view(request, obj_id):
         return
 
     download = request.db.query(Download).get(obj_id)
-    current_size = 0
-    try:
-        statinfo = os.stat(download.get_path_cache())
-        current_size = statinfo.st_size
-    except:
-        raise
 
+    if download.to_keep:
+        statinfo = os.stat('downloads/%s' % download.filename)
+    else:
+        statinfo = os.stat(download.get_path_cache())
+
+    current_size = statinfo.st_size
     r['current_size'] = current_size
     r = json.dumps(r).encode('ascii')
     request.send_content_response(r, 'application/json')

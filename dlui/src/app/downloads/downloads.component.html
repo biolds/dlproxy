@@ -1,1 +1,5 @@
-<p>downloads works!</p>
+<ng-container *ngIf="downloads">
+  <app-download *ngFor="let download of downloads.objs"
+    [downloadData]="download">
+  </app-download>
+</ng-container>

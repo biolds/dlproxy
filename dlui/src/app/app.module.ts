@@ -22,6 +22,7 @@ import { MaintabsComponent } from './maintabs/maintabs.component';
 import { SettingsComponent } from './settings/settings.component';
 import { DownloadComponent } from './download/download.component';
 import { DownloadsComponent } from './downloads/downloads.component';
+import { NewDownloadComponent } from './new-download/new-download.component';
 
 @NgModule({
   declarations: [
@@ -30,7 +31,8 @@ import { DownloadsComponent } from './downloads/downloads.component';
     ErrorComponent,
     MaintabsComponent,
     SettingsComponent,
-    DownloadsComponent
+    DownloadsComponent,
+    NewDownloadComponent
   ],
   imports: [
     BrowserModule,
