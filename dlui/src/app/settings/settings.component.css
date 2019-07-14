@@ -10,4 +10,13 @@
 
 textarea {
   height: 250px;
+  font-family: monospace;
+}
+
+.right-side-button {
+  float: right;
+}
+
+mat-spinner {
+  display: inline-block;
 }

@@ -14,22 +14,33 @@ export class SettingsComponent implements OnInit {
     ca_key: ['']
   });
 
+  certLoading = false;
+
   constructor(
     private settingsService: SettingsService,
     private fb: FormBuilder) {
   }
 
-  generateNew() {
-    this.settingsService.generateNewCerts()
+  getSettings(): void {
+    this.settingsService.getSettings()
       .subscribe(settings => {this.settingsForm.patchValue(settings)});
+  }
+
+  certificateDownload(): void {
+    window.location.pathname = `/cacert_download`;
+  }
+
+  generateNew() {
+    this.certLoading = true;
+    this.settingsService.generateNewCerts()
+      .subscribe(settings => {
+        this.settingsForm.patchValue(settings);
+        this.certLoading = false;
+      });
   }
 
   onSubmit() {
-    console.log('got:', this.settingsForm.value);
-  }
-
-  getSettings(): void {
-    this.settingsService.getSettings()
+    this.settingsService.setSettings(this.settingsForm.value)
       .subscribe(settings => {this.settingsForm.patchValue(settings)});
   }
 

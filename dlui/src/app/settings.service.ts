@@ -15,6 +15,10 @@ export class SettingsService {
     return this.http.post<Settings>(`/api/cacert/generate`, {});
   }
 
+  setSettings(settings: Settings): Observable<Settings> {
+    return this.http.post<Settings>(`/api/settings`, settings);
+  }
+
   getSettings(): Observable<Settings> {
     return this.http.get<Settings>(`/api/settings`);
   }

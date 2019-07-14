@@ -13,6 +13,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material';
 
@@ -43,6 +44,7 @@ import { DownloadsComponent } from './downloads/downloads.component';
     MatButtonModule,
     MatCardModule,
     MatProgressBarModule,
+    MatProgressSpinnerModule,
     MatTabsModule,
     MatFormFieldModule
   ],

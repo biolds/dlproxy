@@ -38,5 +38,17 @@ def settings_get(request):
 
 def settings_view(request):
     if request.command == 'POST':
-        raise NotImplementedError()
+        print('PSOT')
+        content_length = int(request.headers.get('Content-Length', 0))
+        data = request.rfile.read(content_length) if content_length else None
+        data = json.loads(data.decode('ascii'))
+        print('daa %s' % data)
+        settings = Settings.get_or_create(request.db)
+        for attr in ('ca_cert', 'ca_key'):
+            if attr in data:
+                print('settings %s' % attr)
+                setattr(settings, attr, data[attr])
+        request.db.add(settings)
+        request.db.commit()
+
     settings_get(request)

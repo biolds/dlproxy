@@ -3,11 +3,16 @@
     <mat-form-field>
       <textarea matInput formControlName="ca_cert" placeholder="CA certificate"></textarea>
     </mat-form-field>
+    <button mat-raised-button color="secondary" (click)="certificateDownload()" class="right-side-button">
+      <mat-icon color="secondary">save</mat-icon>
+      Download CA certificate
+    </button>
     <mat-form-field>
       <textarea matInput formControlName="ca_key" placeholder="CA key"></textarea>
     </mat-form-field>
-    <button mat-raised-button color="secondary" (click)="generateNew()">
-      <mat-icon>build</mat-icon>
+    <button mat-raised-button color="secondary" (click)="generateNew()" [disabled]="certLoading" class="right-side-button">
+      <mat-icon *ngIf="!certLoading">build</mat-icon>
+      <mat-spinner *ngIf="certLoading" diameter="24"></mat-spinner>
       Generate CA certificate and key
     </button>
     <button mat-raised-button color="primary" (click)="onSubmit()">

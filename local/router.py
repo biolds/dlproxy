@@ -73,6 +73,9 @@ class Router:
                     with open(path, 'rb') as p:
                         request.send_content_response(p.read(), mime, mime == 'application/javascript')
         else:
+            if len(_path) and _path[-1] == '':
+                # strip trailing /
+                _path = _path[:-1]
             print('params:', _path)
             view(request, *_path)
 
