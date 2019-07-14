@@ -19,12 +19,14 @@ from http.server import HTTPServer, BaseHTTPRequestHandler, HTTPStatus
 from socketserver import ThreadingMixIn
 from io import StringIO, BytesIO
 from subprocess import Popen, PIPE
+from string import Template
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.orm.exc import NoResultFound
 
 from local.access import UrlAccess
+from local.certs import generate_cert
 from local.download import Download
 from local.index import load_index_content, render_index
 from local.router import router
@@ -57,7 +59,9 @@ download_html = '''
 my_hostname = socket.gethostname()
 conf = None
 
-engine = create_engine('postgresql+psycopg2://dlproxy:dlproxy@localhost:5432/dlproxy') #, echo=True)
+engine = create_engine('postgresql+psycopg2://dlproxy:dlproxy@localhost:5432/dlproxy',
+            max_overflow=-1 # allow unlimited connections since, threads count is not limited
+            ) #, echo=True)
 session_factory = sessionmaker(bind=engine)
 DBSession = scoped_session(session_factory)
 
@@ -84,13 +88,14 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 class ProxyRequestHandler(BaseHTTPRequestHandler):
-    protocol = 'HTTP/1.1'
+    protocol_version = 'HTTP/1.1'
 
     cakey = 'ca.key'
     cacert = 'ca.crt'
     certkey = 'cert.key'
     certdir = 'certs/'
     timeout = 5
+    conf_template = Template("subjectAltName=DNS:${hostname}")
     lock = threading.Lock()
 
     def __init__(self, *args, **kwargs):
@@ -219,19 +224,26 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
     def connect_intercept(self):
         hostname = self.path.split(':')[0]
         certpath = "%s/%s.crt" % (self.certdir.rstrip('/'), hostname)
+        confpath = "%s/%s.cnf" % (self.certdir.rstrip('/'), hostname)
 
         print('intercept')
         with self.lock:
             if not os.path.isfile(certpath):
-                epoch = "%d" % (time.time() * 1000)
-                p1 = Popen(["openssl", "req", "-new", "-key", self.certkey, "-subj", "/CN=%s" % hostname], stdout=PIPE)
-                p2 = Popen(["openssl", "x509", "-req", "-days", "3650", "-CA", self.cacert, "-CAkey", self.cakey, "-set_serial", epoch, "-out", certpath], stdin=p1.stdout, stderr=PIPE)
-                p2.communicate()
+                generate_cert(self, hostname)
+                #with open(confpath, 'w') as fp:
+                #    fp.write(self.conf_template.substitute(hostname=hostname))
+                #epoch = "%d" % (time.time() * 1000)
+                #p1 = Popen(["openssl", "req", "-new", "-key", self.certkey, "-subj", "/CN=%s" % hostname], stdout=PIPE)
+                #p2 = Popen(["openssl", "x509", "-req", "-extfile", confpath, "-days", "3650", "-CA", self.cacert, "-CAkey", self.cakey, "-set_serial", epoch, "-out", certpath], stdin=p1.stdout, stderr=PIPE)
+                #p2.communicate()
+                #print('certs built')
 
         resp = "%s %d %s\r\n" % (self.protocol_version, 200, 'Connection Established')
         resp = resp.encode('ascii')
         self.wfile.write(resp + b'\r\n')
+        #self.end_headers()
 
+        print('new conn: %s / %s' % (self.certkey, certpath))
         self.connection = ssl.wrap_socket(self.connection, keyfile=self.certkey, certfile=certpath, server_side=True)
         self.rfile = self.connection.makefile("rb", self.rbufsize)
         self.wfile = self.connection.makefile("wb", self.wbufsize)

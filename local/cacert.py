@@ -1,6 +1,3 @@
-import tempfile
-import subprocess
-
 from OpenSSL import crypto
 
 from local.settings import Settings, settings_get
