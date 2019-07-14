@@ -11,7 +11,8 @@ import { SettingsService } from '../settings.service';
 export class SettingsComponent implements OnInit {
   settingsForm = this.fb.group({
     ca_cert: [''],
-    ca_key: ['']
+    ca_key: [''],
+    certs_key: ['']
   });
 
   certLoading = false;

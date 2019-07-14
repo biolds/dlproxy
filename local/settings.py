@@ -9,8 +9,9 @@ from local.view import serialize
 class Settings(Base):
     __tablename__ = 'settings'
     id = Column(Integer, primary_key=True)
-    ca_cert = Column(String(65536), default='abc')
-    ca_key = Column(String(65536), default='def')
+    ca_cert = Column(String(65536), default='')
+    ca_key = Column(String(65536), default='')
+    certs_key = Column(String(65536), default='')
 
     @classmethod
     def get_or_create(cls, db):
@@ -44,7 +45,7 @@ def settings_view(request):
         data = json.loads(data.decode('ascii'))
         print('daa %s' % data)
         settings = Settings.get_or_create(request.db)
-        for attr in ('ca_cert', 'ca_key'):
+        for attr in ('ca_cert', 'ca_key', 'certs_key'):
             if attr in data:
                 print('settings %s' % attr)
                 setattr(settings, attr, data[attr])

@@ -220,6 +220,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         hostname = self.path.split(':')[0]
         certpath = "%s/%s.crt" % (self.certdir.rstrip('/'), hostname)
 
+        print('intercept')
         with self.lock:
             if not os.path.isfile(certpath):
                 epoch = "%d" % (time.time() * 1000)
@@ -242,6 +243,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             self.close_connection = 0
 
     def connect_relay(self):
+        print('rely')
         address = self.path.split(':', 1)
         address[1] = int(address[1]) or 443
         try:

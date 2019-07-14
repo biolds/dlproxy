@@ -10,6 +10,9 @@
     <mat-form-field>
       <textarea matInput formControlName="ca_key" placeholder="CA key"></textarea>
     </mat-form-field>
+    <mat-form-field>
+      <textarea matInput formControlName="certs_key" placeholder="Key for websites"></textarea>
+    </mat-form-field>
     <button mat-raised-button color="secondary" (click)="generateNew()" [disabled]="certLoading" class="right-side-button">
       <mat-icon *ngIf="!certLoading">build</mat-icon>
       <mat-spinner *ngIf="certLoading" diameter="24"></mat-spinner>
