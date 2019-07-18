@@ -285,6 +285,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 other.sendall(data)
 
     def do_GET(self, inject=False):
+        download = False
         req = self
         content_length = int(req.headers.get('Content-Length', 0))
         req_body = self.rfile.read(content_length) if content_length else None
@@ -313,7 +314,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             version_table = {10: 'HTTP/1.0', 11: 'HTTP/1.1'}
             setattr(res, 'headers', res.msg)
             setattr(res, 'response_version', version_table[res.version])
-            download, filename = self._is_download(netloc, res)
+            download, filename = self._is_download(netloc, path, res)
             print('download:', download)
             if inject:
                 print('inject/content-type:', res.getheader('content-type'))
@@ -344,6 +345,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(b'\r\n')
                 fd = self.wfile
 
+            i = 0
             while True:
                 res_body = res.read(1024)
                 if len(res_body) == 0:
@@ -351,15 +353,22 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 fd.write(res_body)
 
                 # Check the entry in the db still exists, to cancel the download otherwise
-                if download:
-                    try:
-                        self.db.flush()
-                        self.db.query(Download).get(download.id)
-                    except NoResultFound:
-                        print('CANCELED')
+                if i % 16 == 0 and download:
+                    self.db.flush()
+                    if self.db.query(Download).get(download.id) is None:
                         break
 
+                i += 1
+
             fd.flush()
+
+            if download:
+                self.db.query(Download).get(download.id)
+                download.downloaded = True
+                download.filesize = os.stat('downloads/%s' % download.filename).st_size
+                self.db.add(download)
+                self.db.commit()
+
             self.log_request(res.status, res.reason)
         except Exception as e:
             if origin in self.tls.conns:
@@ -367,7 +376,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             self.send_error(502, repr(e))
             raise
 
-    def _is_download(self, netloc, res):
+    def _is_download(self, netloc, path, res):
         if ':' in netloc:
             netloc = netloc.split(':', 1)[0]
 
@@ -381,16 +390,26 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             return False, None
 
 
-        if netloc in ('googleads.g.doubleclick.net', 'sb-ssl.google.com'):
+        print('is_download path: %s' % path)
+        if netloc in ('googleads.g.doubleclick.net', 'sb-ssl.google.com', 'safebrowsing.googleapis.com',
+                        'clientservices.googleapis.com'):
             return False, None
+
+        for ext in ('wasm', 'pb', 'ttf', 'woff'):
+            if path.endswith('.' + ext):
+                return False,  None
 
         content_type = res.getheader('Content-Type', '')
         if ';' in content_type:
             content_type = content_type.split(';', 1)[0]
 
-        for mime in ('application/x-font', 'application/font', 'application/vnd.'):
+        for mime in ('application/x-font', 'application/font', 'application/vnd.', 'application/opensearchdescription'):
             if content_type.startswith(mime):
                 return False, None
+        if content_type in ('text/javascript', 'application/javascript', 'application/x-javascript',
+                'application/x-www-form-urlencoded', 'application/json', 'application/x-protobuf', 'application/x-protobuffer'):
+            return False, None
+
 
 
         print('headers:', res.getheaders())
@@ -398,8 +417,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         #if disposition.startswith('inline;'):
         #    return False, None
 
-        if disposition == 'attachment':
-            return False, None
+        #if disposition == 'attachment':
+        #    return False, None
 
         if disposition.startswith('attachment;'):
             disps = [disp.strip() for disp in disposition.split(';')][1:]
@@ -414,9 +433,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
         print('type:', content_type)
         if not content_type.startswith('application/'):
-            return False, None
-        if content_type in ('application/javascript', 'application/x-javascript',
-                'application/x-www-form-urlencoded', 'application/json'):
             return False, None
 
         u = urllib.parse.urlsplit(self.path)

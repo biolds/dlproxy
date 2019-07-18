@@ -28,9 +28,15 @@ class Download(Base):
 
 
 def downloads_view(request):
-    downloads = list_serialize(request, Download, {'to_keep': True}, 1)
+    downloads = list_serialize(request, Download, {}, 1)
     for d in downloads['objs']:
-        d['current_size'] = d['filesize']
+        if d['downloaded']:
+            d['current_size'] = d['filesize']
+        elif d['to_keep']:
+            d['current_size'] = os.stat('downloads/%s' % d['filename']).st_size
+        else:
+            fpath = 'cache/%i' % d['id']
+            d['current_size'] = os.stat(fpath).st_size
 
     downloads = json.dumps(downloads).encode('ascii')
     request.send_content_response(downloads, 'application/json')
@@ -66,10 +72,27 @@ def download_save(request, obj_id):
     obj_id = int(obj_id)
     download = request.db.query(Download).get(obj_id)
     download.to_keep = True
+
+    #Find a non-existent filename
+    if '.' in download.filename:
+        file_prefix, file_suffix = download.filename.rsplit('.', 1)
+    else:
+        file_prefix, file_suffix = download.filename, ''
+
+    i = 0
+    while True:
+        filename = '%s (%i)' % (file_prefix, i) if i else file_prefix
+        if file_suffix:
+            filename += '.' + file_suffix
+
+        if not os.path.exists('download/' + filename):
+            break
+
+    download.filename = filename
+
+    os.rename(download.get_path_cache(), 'downloads/' + filename)
     request.db.add(download)
     request.db.commit()
-
-    os.rename(download.get_path_cache(), 'downloads/' + download.filename)
     request.send_content_response('{}'.encode('ascii'), 'application/json')
 
 
@@ -86,6 +109,7 @@ def download_delete(request, obj_id):
     os.unlink(file_path)
 
     request.send_content_response('{}'.encode('ascii'), 'application/json')
+
 
 def direct_download(request, obj_id):
     obj_id = int(obj_id)
