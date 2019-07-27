@@ -1,5 +1,50 @@
-<div *ngIf="download">
-  <mat-card>
+<ng-container *ngIf="download">
+  <ng-container  *ngIf="downloadData">
+    <mat-grid-list cols="8" rowHeight="40px">
+      <mat-grid-tile colspan="8">
+        <span class="tile-text tile-title">
+          {{ download.filename }}
+        </span>
+      </mat-grid-tile>
+      <mat-grid-tile [colspan]="download.to_keep ? 7 : 8">
+        <span class="tile-text tile-subtitle truncate">
+          {{ download.url.url }}<br/>
+          {{ size }} {{ download.mimetype }}
+        </span>
+      </mat-grid-tile>
+      <mat-grid-tile *ngIf="download.to_keep" class="grid-icons" colspan="1" rowspan="2">
+        <button mat-fab title="Download" color="primary" (click)="dlDownload(download.id)">
+          <mat-icon>save_alt</mat-icon>
+        </button>
+        <a mat-fab *ngIf="canOpen" title="Open in browser" color="secondary" target="_blank" rel="noopener noreferrer" [href]="'/dl_open/' + download.id">
+          <mat-icon>folder_open</mat-icon>
+        </a>
+        <button mat-fab title="Delete" color="warn">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </mat-grid-tile>
+      <mat-grid-tile [colspan]="download.to_keep ? 7 : 8">
+        <mat-progress-bar color="primary" mode="determinate"
+          [value]="progress">
+        </mat-progress-bar>
+      </mat-grid-tile>
+    </mat-grid-list>
+    <div *ngIf="!download.to_keep">
+      <button mat-raised-button color="primary" (click)="saveDownload()">
+        <mat-icon>cloud_download</mat-icon>
+        Save on proxy
+      </button>
+      <button mat-raised-button color="secondary" (click)="fileDownload()" >
+        <mat-icon>save_alt</mat-icon>
+        Download now
+      </button>
+      <button mat-raised-button color="warn" (click)="cancelDownload()">
+        <mat-icon>close</mat-icon>
+        Cancel
+      </button>
+    </div>
+  </ng-container>
+  <mat-card *ngIf="!downloadData">
     <mat-card-header>
       <mat-card-title>{{ download.filename }}</mat-card-title>
       <mat-card-subtitle>
@@ -9,7 +54,7 @@
     </mat-card-header>
     <mat-card-content>
       <mat-progress-bar color="primary" mode="determinate"
-          [value]="progress">
+        [value]="progress">
       </mat-progress-bar>
     </mat-card-content>
     <mat-card-actions *ngIf="!download.to_keep">
@@ -27,4 +72,4 @@
       </button>
     </mat-card-actions>
   </mat-card>
-</div>
+</ng-container>

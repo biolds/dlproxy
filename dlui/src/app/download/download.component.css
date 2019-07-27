@@ -1,0 +1,23 @@
+.tile-text {
+  font-family: Roboto,"Helvetica Neue",sans-serif;
+  position: absolute;
+  left: 5px;
+}
+
+.tile-title  {
+  font-weight: 500;
+  font-size: 20px;
+  color: rgba(0,0,0,.87);
+}
+
+.tile-subtitle  {
+  color: rgba(0,0,0,.54);
+  font-size: 14px;
+}
+
+.truncate {
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

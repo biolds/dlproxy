@@ -153,3 +153,49 @@ def direct_download(request, obj_id):
         size -= len(buf)
     request.wfile.flush()
     f.close()
+
+
+def dl_download(request, obj_id, attachment=True):
+    obj_id = int(obj_id)
+    download = request.db.query(Download).get(obj_id)
+
+    if not download.to_keep:
+        request.send_error(HTTPStatus.METHOD_NOT_ALLOWED)
+        return
+
+    filename = download.filename
+    filesize = download.filesize
+    mime = download.mimetype
+    filepath = 'downloads/' + filename
+
+    f = open(filepath, 'rb')
+
+    response = "%s %d %s\r\n" % (request.protocol_version, 200, 'OK')
+    response = response.encode('ascii')
+    request.wfile.write(response)
+    request.send_header('Content-Type', mime)
+    request.send_header('Content-Length', filesize)
+    if attachment:
+        content_disp = 'attachment'
+    else:
+        content_disp = 'inline'
+    content_disp += '; filename="%s"' % filename
+    request.send_header('Content-Disposition', content_disp)
+    request.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+    request.send_header('Pragma', 'no-cache')
+    request.send_header('Expires', '0')
+    request.send_header('Connection', 'close')
+    request.end_headers()
+
+    size = int(filesize)
+    while size:
+        n = 1024 if size > 1024 else size
+        buf = f.read(n)
+        if buf == 0:
+            sleep(1)
+            continue
+
+        request.wfile.write(buf)
+        size -= len(buf)
+    request.wfile.flush()
+    f.close()

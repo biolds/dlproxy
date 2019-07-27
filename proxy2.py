@@ -21,9 +21,10 @@ from io import StringIO, BytesIO
 from subprocess import Popen, PIPE
 from string import Template
 
+import magic
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, scoped_session
-from sqlalchemy.orm.exc import NoResultFound
 
 from local.access import UrlAccess
 from local.certs import generate_cert
@@ -363,9 +364,22 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             fd.flush()
 
             if download:
-                self.db.query(Download).get(download.id)
+                download = self.db.query(Download).get(download.id)
                 download.downloaded = True
-                download.filesize = os.stat('downloads/%s' % download.filename).st_size
+
+                if download.to_keep:
+                    filepath = 'downloads/%s' % download.filename
+                else:
+                    filepath = download.get_path_cache()
+
+                download.filesize = os.stat(filepath).st_size
+                
+                m = magic.Magic(mime=True, uncompress=False)
+                mime = m.from_file(filepath)
+                if ';' in mime:
+                    mime = mime.split(';', 1)[0]
+                download.mimetype = mime
+
                 self.db.add(download)
                 self.db.commit()
 
@@ -395,7 +409,11 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                         'clientservices.googleapis.com'):
             return False, None
 
-        for ext in ('wasm', 'pb', 'ttf', 'woff'):
+        for domain in ('.gvt1.com',):
+            if netloc.endswith(domain):
+                return False, None
+
+        for ext in ('wasm', 'pb', 'ttf', 'woff', 'woff2'):
             if path.endswith('.' + ext):
                 return False,  None
 
@@ -528,7 +546,7 @@ if __name__ == '__main__':
     parser.add_argument('--init-db', action='store_true', help='Create database tables')
     parser.add_argument('--dev', action='store_true', help='Serve UI through Angular development server (on localhost:4200)')
     parser.add_argument('-p', '--port', type=int, help='Port number to listen on', default=8000)
-    parser.add_argument('-u', '--url', type=int, help='Public url (default %s)' % default_url, default=None)
+    parser.add_argument('-u', '--url', help='Public url (default %s)' % default_url, default=None)
     conf = parser.parse_args()
 
     if conf.init_db:

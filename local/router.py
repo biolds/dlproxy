@@ -5,7 +5,7 @@ from http.server import BaseHTTPRequestHandler
 import urllib.parse
 
 from local.cacert import cacert_download, cacert_generate
-from local.download import download_delete, downloads_view, download_view, download_save, direct_download
+from local.download import dl_download, download_delete, downloads_view, download_view, download_save, direct_download
 from local.settings import settings_view
 from local.index import render_index, UI_INDEX, UI_PATH
 
@@ -14,6 +14,8 @@ class Router:
     ROUTES = {
         'cacert_download': cacert_download,
         'direct_download': direct_download,
+        'dl_download': dl_download,
+        'dl_open': lambda x, y: dl_download(x, y, attachment=False),
         'api': {
             # 'download': lambda req, obj: api_detail_view(Download, 1, req, obj)
             'downloads': downloads_view,

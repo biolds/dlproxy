@@ -16,6 +16,7 @@ export class DownloadComponent implements OnInit {
   downloadStarted: boolean;
   size: string;
   interval: number;
+  canOpen: boolean;
 
   constructor(
     private downloadService: DownloadService,
@@ -57,21 +58,35 @@ export class DownloadComponent implements OnInit {
 
   saveDownload(): void {
     this.downloadService.saveDownload(this.download.id).subscribe(() => {
-      window.history.back();
+      if (!this.downloadData) {
+        window.history.back();
+      }
     });
   }
 
   cancelDownload(): void {
     this.downloadService.deleteDownload(this.download.id).subscribe(() => {
-      window.history.back();
+      if (!this.downloadData) {
+        window.history.back();
+      }
     });
+  }
+
+  dlDownload(): void {
+    window.location.pathname = `/dl_download/${this.download.id}`;
   }
 
   ngOnInit() {
     this.progress = 0;
     this.downloadStarted = false;
+    this.canOpen = false;
+
     if (this.downloadData) {
       this.loadData(this.downloadData);
+      let prefixType: string = this.downloadData.mimetype.split('/')[0];
+      if (['text', 'image', 'video'].indexOf(prefixType) !== -1) {
+        this.canOpen = true;
+      }
     } else {
       this.getDownload();
       this.interval = setInterval(() => {

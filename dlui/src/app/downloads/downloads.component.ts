@@ -18,6 +18,9 @@ export class DownloadsComponent implements OnInit {
   getDownloads(): void {
     this.downloadService.downloadList().subscribe((downloads) => {
       this.downloads = downloads;
+      let objs = downloads.objs;
+      objs.reverse();
+      this.downloads.objs = objs;
       console.log('got downloads:', downloads);
     })
   }
