@@ -41,7 +41,8 @@ export class DownloadService {
           to_keep: false,
           downloaded: false,
           bandwidth: null,
-          stats_date: 0
+          stats_date: 0,
+          error: null
         }))
       );
   }

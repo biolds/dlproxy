@@ -2,6 +2,7 @@ from http.server import HTTPStatus
 import json
 import os
 
+import magic
 from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
@@ -23,9 +24,28 @@ class Download(Base):
     downloaded = Column(Boolean, default=False)
     stats_date = Column(DateTime, default=func.now())
     bandwidth = Column(Integer, default=None)
+    error = Column(String(4096))
 
     def get_path_cache(self):
         return 'cache/%i' % self.id
+
+    def update_from_file(self, db):
+        self.downloaded = True
+        self.stats_date = None
+        self.bandwidth = None
+
+        if self.to_keep:
+            filepath = 'downloads/%s' % self.filename
+        else:
+            filepath = self.get_path_cache()
+
+        self.filesize = os.stat(filepath).st_size
+
+        m = magic.Magic(mime=True, uncompress=False)
+        mime = m.from_file(filepath)
+        if ';' in mime:
+            mime = mime.split(';', 1)[0]
+        self.mimetype = mime
 
 
 def downloads_view(request):
@@ -89,12 +109,14 @@ def download_save(request, obj_id):
         if not os.path.exists('downloads/' + filename):
             break
 
+        i += 1
+
     download.filename = filename
 
     os.rename(download.get_path_cache(), 'downloads/' + filename)
     request.db.add(download)
     request.db.commit()
-    request.send_content_response('{}'.encode('ascii'), 'application/json')
+    download_view(request, obj_id)
 
 
 def download_delete(request, obj_id):
@@ -104,7 +126,10 @@ def download_delete(request, obj_id):
 
     obj_id = int(obj_id)
     download = request.db.query(Download).get(obj_id)
-    file_path = download.get_path_cache()
+    if download.to_keep:
+        file_path = 'downloads/%s' % self.filename
+    else:
+        file_path = download.get_path_cache()
     request.db.delete(download)
     request.db.commit()
     os.unlink(file_path)

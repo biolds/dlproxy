@@ -12,7 +12,7 @@
           {{ size }} {{ download.mimetype }} {{ bandwidth }}<ng-container *ngIf="eta"> - {{ eta }} remaining</ng-container>
         </span>
       </mat-grid-tile>
-      <mat-grid-tile *ngIf="download.to_keep" class="grid-icons" colspan="1" rowspan="2">
+      <mat-grid-tile *ngIf="download.to_keep" class="grid-icons" colspan="1" [rowspan]="download.error ? 3 : 2">
         <button mat-fab title="Download" color="primary" (click)="dlDownload(download.id)">
           <mat-icon>save_alt</mat-icon>
         </button>
@@ -22,6 +22,11 @@
         <button mat-fab title="Delete" color="warn">
           <mat-icon>delete</mat-icon>
         </button>
+      </mat-grid-tile>
+      <mat-grid-tile *ngIf="download.error" [colspan]="download.to_keep ? 7 : 8">
+        <span class="tile-text tile-subtitle">
+          <b>{{ download.error }}</b>
+        </span>
       </mat-grid-tile>
       <mat-grid-tile [colspan]="download.to_keep ? 7 : 8">
         <mat-progress-bar color="primary" mode="determinate"
@@ -56,6 +61,9 @@
       <mat-progress-bar color="primary" mode="determinate"
         [value]="progress">
       </mat-progress-bar>
+      <div *ngIf="download.error">
+        {{ download.error }}
+      </div>
     </mat-card-content>
     <mat-card-actions *ngIf="!download.to_keep">
       <button mat-raised-button color="primary" (click)="saveDownload()">

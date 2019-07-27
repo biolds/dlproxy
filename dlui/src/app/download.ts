@@ -12,4 +12,5 @@ export class Download {
   downloaded: boolean;
   bandwidth: number;
   stats_date: number;
+  error: string;
 }

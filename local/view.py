@@ -2,6 +2,7 @@ from datetime import datetime
 import enum
 import json
 
+from sqlalchemy import desc
 from sqlalchemy.inspection import inspect
 
 
@@ -31,6 +32,13 @@ def serialize(request, cls, obj_id, level):
 
 def list_serialize(request, cls, _filter, level):
     objs = request.db.query(cls).filter_by(**_filter)
+
+    order = 'id'
+    if hasattr(cls, 'date'):
+        order = 'date'
+
+    order = getattr(cls, order)
+    objs = objs.order_by(desc(order))
 
     r = {
         'count': objs.count(),

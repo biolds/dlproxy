@@ -15,6 +15,7 @@ import json
 import re
 import cgi
 from datetime import datetime
+from traceback import format_exception
 from ipaddress import ip_address
 from http.server import HTTPServer, BaseHTTPRequestHandler, HTTPStatus
 from socketserver import ThreadingMixIn
@@ -22,7 +23,6 @@ from io import StringIO, BytesIO
 from subprocess import Popen, PIPE
 from string import Template
 
-import magic
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, scoped_session
@@ -214,7 +214,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
         self.log_message(format, *args)
 
-        from traceback import format_exception
         ex = args[0]
         if isinstance(ex, Exception):
             exc = ''.join(format_exception(etype=type(ex), value=ex, tb=ex.__traceback__))
@@ -375,22 +374,11 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             if download:
                 download = self.db.query(Download).get(download.id)
-                download.downloaded = True
+                filesize = download.filesize
+                download.update_from_file(self.db)
 
-                if download.to_keep:
-                    filepath = 'downloads/%s' % download.filename
-                else:
-                    filepath = download.get_path_cache()
-
-                download.filesize = os.stat(filepath).st_size
-
-                m = magic.Magic(mime=True, uncompress=False)
-                mime = m.from_file(filepath)
-                if ';' in mime:
-                    mime = mime.split(';', 1)[0]
-                download.mimetype = mime
-                download.stats_date = None
-                download.bandwidth = None
+                if filesize != download.filesize:
+                    download.error = 'Connection closed'
 
                 self.db.add(download)
                 self.db.commit()
@@ -399,6 +387,15 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         except Exception as e:
             if origin in self.tls.conns:
                 del self.tls.conns[origin]
+            if download:
+                download = self.db.query(Download).get(download.id)
+                download.update_from_file(self.db)
+                exc = ''.join(format_exception(etype=type(e), value=e, tb=e.__traceback__))
+                download.error = exc
+                print('downlad got exception:\n%s' % exc)
+                self.db.add(download)
+                self.db.commit()
+
             self.send_error(502, repr(e))
             raise
 
@@ -572,6 +569,19 @@ if __name__ == '__main__':
 
     if not conf.dev:
         load_index_content(conf)
+
+
+    # Clean previously running downloads
+    db = DBSession()
+    for download in db.query(Download).filter(Download.to_keep == False):
+        db.delete(download)
+    for download in db.query(Download).filter(Download.downloaded == False):
+        download.update_from_file(db)
+        db.add(download)
+    db.commit()
+
+    for f in os.listdir('cache/'):
+        os.unlink('cache/' + f)
 
     server_address = ('', conf.port)
     httpd = ThreadingHTTPServer(server_address, ProxyRequestHandler)
