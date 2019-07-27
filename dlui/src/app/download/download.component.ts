@@ -1,6 +1,7 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Inject, Input } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Download } from '../download';
 import { DownloadService } from '../download.service';
 
@@ -22,7 +23,8 @@ export class DownloadComponent implements OnInit {
 
   constructor(
     private downloadService: DownloadService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    public dialog: MatDialog
   ) {}
 
   humanSize(size: number): string {
@@ -108,6 +110,18 @@ export class DownloadComponent implements OnInit {
     window.location.pathname = `/dl_download/${this.download.id}`;
   }
 
+  onDelete(): void {
+    const dialogRef = this.dialog.open(DownloadCancelDialog, {
+      data: this.download
+    });
+    dialogRef.afterClosed().subscribe(deleteConfirmed => {
+      console.log('doing deleete', deleteConfirmed);
+      if (deleteConfirmed) {
+        this.downloadService.deleteDownload(this.download.id).subscribe();
+      }
+    });
+  }
+
   ngOnInit() {
     this.progress = 0;
     this.downloadStarted = false;
@@ -126,4 +140,14 @@ export class DownloadComponent implements OnInit {
       }, 5000);
     }
   }
+}
+
+@Component({
+  selector: 'download-cancel-dialog',
+  templateUrl: 'download-cancel.html',
+})
+export class DownloadCancelDialog {
+  constructor(
+    public dialogRef: MatDialogRef<DownloadCancelDialog>,
+    @Inject(MAT_DIALOG_DATA) public data: Download) {}
 }

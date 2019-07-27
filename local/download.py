@@ -127,7 +127,7 @@ def download_delete(request, obj_id):
     obj_id = int(obj_id)
     download = request.db.query(Download).get(obj_id)
     if download.to_keep:
-        file_path = 'downloads/%s' % self.filename
+        file_path = 'downloads/%s' % download.filename
     else:
         file_path = download.get_path_cache()
     request.db.delete(download)

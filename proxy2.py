@@ -23,7 +23,7 @@ from io import StringIO, BytesIO
 from subprocess import Popen, PIPE
 from string import Template
 
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.exc import NoResultFound, StaleDataError
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, scoped_session
 
@@ -354,19 +354,25 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 fd.write(res_body)
 
                 if i % 16 == 0 and download:
-                    self.db.flush()
-                    download = self.db.query(Download).get(download.id)
+                    try:
+                        self.db.flush()
+                        download = self.db.query(Download).get(download.id)
 
-                    # Check the entry in the db still exists, to cancel the download otherwise
-                    if download is None:
+                        # Check the entry in the db still exists, to cancel the download otherwise
+                        if download is None:
+                            break
+
+                        now = datetime.now()
+                        dt = now - download.stats_date
+                        download.bandwidth = (16 * 1024) / dt.total_seconds()
+                        download.stats_date = now
+                        self.db.add(download)
+                        self.db.commit()
+                    except StaleDataError:
+                        # Download was canceled and sql update failed
+                        download = None
+                        self.db.rollback()
                         break
-
-                    now = datetime.now()
-                    dt = now - download.stats_date
-                    download.bandwidth = (16 * 1024) / dt.total_seconds()
-                    download.stats_date = now
-                    self.db.add(download)
-                    self.db.commit()
 
                 i += 1
 

@@ -19,7 +19,7 @@
         <a mat-fab *ngIf="canOpen" title="Open in browser" color="secondary" target="_blank" rel="noopener noreferrer" [href]="'/dl_open/' + download.id">
           <mat-icon>folder_open</mat-icon>
         </a>
-        <button mat-fab title="Delete" color="warn">
+        <button mat-fab title="Delete" color="warn" (click)="onDelete()">
           <mat-icon>delete</mat-icon>
         </button>
       </mat-grid-tile>
