@@ -214,12 +214,25 @@ def dl_download(request, obj_id, attachment=True):
     request.end_headers()
 
     size = int(filesize)
+    i = 0
     while size:
         n = 1024 if size > 1024 else size
         buf = f.read(n)
-        if buf == 0:
+        if len(buf) == 0:
+            i += 1
+
+            # Check the download still exists
+            if i % 16 == 0:
+                self.db.flush()
+                download = self.db.query(Download).get(obj_id)
+                if download is None:
+                    break
+                size = download.filesize
+
             sleep(1)
             continue
+        else:
+            i = 0
 
         request.wfile.write(buf)
         size -= len(buf)
