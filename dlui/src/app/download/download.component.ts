@@ -122,6 +122,10 @@ export class DownloadComponent implements OnInit {
     });
   }
 
+  ngOnDestroy() {
+    clearInterval(this.interval);
+  }
+
   ngOnInit() {
     this.progress = 0;
     this.downloadStarted = false;

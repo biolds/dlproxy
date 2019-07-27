@@ -24,6 +24,10 @@ export class DownloadsComponent implements OnInit {
     })
   }
 
+  ngOnDestroy() {
+    clearInterval(this.interval);
+  }
+
   ngOnInit() {
     this.getDownloads();
     this.interval = setInterval(() => {
