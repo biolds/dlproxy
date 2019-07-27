@@ -30,7 +30,7 @@ def serialize(request, cls, obj_id, level):
     return r
 
 
-def api_detail_view(cls, level, request, obj_id):
+def api_detail_view(cls, level, request, query, obj_id):
     r = serialize(request, cls, obj_id, level)
     r = json.dumps(r).encode('ascii')
     request.send_content_response(r, 'application/json')
@@ -58,7 +58,7 @@ def list_serialize(request, cls, _filter, level):
     return r
 
 
-def api_list_view(cls, level, request):
+def api_list_view(cls, level, request, query):
     r = list_serialize(request, cls, {}, level)
     r = json.dumps(r).encode('ascii')
     request.send_content_response(r, 'application/json')

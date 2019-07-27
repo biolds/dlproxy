@@ -30,7 +30,14 @@ def format_var(name, value):
     return 'let %s = %s;\n' % (name, json.dumps(value))
 
 
-def render_index(conf, page, index=None, exception=None):
+def render_index(request, conf, page, index=None, exception=None):
+    if not 'text/html' in request.headers.get('accept', 'text/html') and exception:
+        if conf.dev:
+            err = ''.join(format_exception(etype=type(exception), value=exception, tb=exception.__traceback__))
+        else:
+            err = repr(exception)
+        return err.encode('ascii')
+
     globalvars = {
         'page': page,
         'error': {

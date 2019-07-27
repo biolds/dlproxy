@@ -48,7 +48,7 @@ class Download(Base):
         self.mimetype = mime
 
 
-def downloads_view(request):
+def downloads_view(request, query):
     downloads = list_serialize(request, Download, {}, 1)
     for d in downloads['objs']:
         if d['downloaded']:
@@ -63,7 +63,7 @@ def downloads_view(request):
     request.send_content_response(downloads, 'application/json')
 
 
-def download_view(request, obj_id):
+def download_view(request, query, obj_id):
     obj_id = int(obj_id)
 
     try:
@@ -85,7 +85,7 @@ def download_view(request, obj_id):
     request.send_content_response(r, 'application/json')
 
 
-def download_save(request, obj_id):
+def download_save(request, query, obj_id):
     if request.command != 'POST':
         request.send_error(HTTPStatus.METHOD_NOT_ALLOWED)
         return
@@ -116,10 +116,10 @@ def download_save(request, obj_id):
     os.rename(download.get_path_cache(), 'downloads/' + filename)
     request.db.add(download)
     request.db.commit()
-    download_view(request, obj_id)
+    download_view(request, query, obj_id)
 
 
-def download_delete(request, obj_id):
+def download_delete(request, query, obj_id):
     if request.command != 'POST':
         request.send_error(HTTPStatus.METHOD_NOT_ALLOWED)
         return
@@ -137,7 +137,7 @@ def download_delete(request, obj_id):
     request.send_content_response('{}'.encode('ascii'), 'application/json')
 
 
-def direct_download(request, obj_id):
+def direct_download(request, query, obj_id):
     obj_id = int(obj_id)
     download = request.db.query(Download).get(obj_id)
 
@@ -181,7 +181,7 @@ def direct_download(request, obj_id):
     f.close()
 
 
-def dl_download(request, obj_id, attachment=True):
+def dl_download(request, query, obj_id, attachment=True):
     obj_id = int(obj_id)
     download = request.db.query(Download).get(obj_id)
 

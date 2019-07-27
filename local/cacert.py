@@ -3,7 +3,7 @@ from OpenSSL import crypto
 from local.settings import Settings, settings_get
 
 
-def cacert_download(request):
+def cacert_download(request, query):
     settings = Settings.get_or_create(request.db)
     data = settings.ca_cert.encode('ascii')
 
@@ -21,7 +21,7 @@ def cacert_download(request):
     request.wfile.write(data)
 
 
-def cacert_generate(request):
+def cacert_generate(request, query):
     if request.command != 'POST':
         request.send_error(HTTPStatus.METHOD_NOT_ALLOWED)
         return

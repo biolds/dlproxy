@@ -195,7 +195,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             res = conn.getresponse()
             kwargs['index'] = res.read()
 
-        content = render_index(conf, *args, **kwargs)
+        content = render_index(self, conf, *args, **kwargs)
         self.send_header('Content-Type', 'text/html')
         self.send_header('Content-Length', len(content))
         self.send_header('Connection', 'close')

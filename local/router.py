@@ -17,9 +17,8 @@ class Router:
         'cacert_download': cacert_download,
         'direct_download': direct_download,
         'dl_download': dl_download,
-        'dl_open': lambda x, y: dl_download(x, y, attachment=False),
+        'dl_open': lambda req, q, obj_id: dl_download(req, q, obj_id, attachment=False),
         'api': {
-            # 'download': lambda req, obj: api_detail_view(Download, 1, req, obj)
             'downloads': downloads_view,
             'download': {
                 'get': download_view,
@@ -30,13 +29,13 @@ class Router:
                 'generate': cacert_generate,
             },
             'settings': settings_view,
-            'urls': lambda x: api_list_view(UrlAccess, 1, x)
+            'urls': lambda req, q: api_list_view(UrlAccess, 1, req, q)
         }
     }
 
     def handle(self, request, conf):
         u = urllib.parse.urlsplit(request.path)
-        scheme, netloc, path = u.scheme, u.netloc, (u.path + '?' + u.query if u.query else u.path)
+        scheme, netloc, path = u.scheme, u.netloc, u.path
 
         # TODO heck referer of unsfe methods
 
@@ -77,16 +76,16 @@ class Router:
                     path = UI_PATH + UI_INDEX
 
                 if path == UI_PATH + UI_INDEX:
-                    request.send_content_response(render_index(conf, 'angular'), 'text/html')
+                    request.send_content_response(render_index(request, conf, 'angular'), 'text/html')
                 else:
                     mime = mimetypes.guess_type(path)[0]
                     with open(path, 'rb') as p:
                         request.send_content_response(p.read(), mime, mime == 'application/javascript')
         else:
-            if len(_path) and _path[-1] == '':
+            if len(_path) and _path[-1] == '/':
                 # strip trailing /
                 _path = _path[:-1]
             print('params:', _path)
-            view(request, *_path)
+            view(request, u.query, *_path)
 
 router = Router()

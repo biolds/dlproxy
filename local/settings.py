@@ -29,7 +29,7 @@ class Settings(Base):
             return db.query(Settings).get(1)
 
 
-def settings_get(request):
+def settings_get(request, query):
     settings = Settings.get_or_create(request.db)
     print('got:', settings)
     r = serialize(request, Settings, settings.id, 0)
@@ -37,7 +37,7 @@ def settings_get(request):
     request.send_content_response(r, 'application/json')
 
 
-def settings_view(request):
+def settings_view(request, query):
     if request.command == 'POST':
         print('PSOT')
         content_length = int(request.headers.get('Content-Length', 0))
@@ -52,4 +52,4 @@ def settings_view(request):
         request.db.add(settings)
         request.db.commit()
 
-    settings_get(request)
+    settings_get(request, query)
