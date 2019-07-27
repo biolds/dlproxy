@@ -9,7 +9,7 @@
       <mat-grid-tile [colspan]="download.to_keep ? 7 : 8">
         <span class="tile-text tile-subtitle truncate">
           {{ download.url.url }}<br/>
-          {{ size }} {{ download.mimetype }}
+          {{ size }} {{ download.mimetype }} {{ bandwidth }}<ng-container *ngIf="eta"> - {{ eta }} remaining</ng-container>
         </span>
       </mat-grid-tile>
       <mat-grid-tile *ngIf="download.to_keep" class="grid-icons" colspan="1" rowspan="2">
@@ -49,7 +49,7 @@
       <mat-card-title>{{ download.filename }}</mat-card-title>
       <mat-card-subtitle>
         {{ download.url.url }}<br/>
-        {{ size }} {{ download.mimetype }}
+        {{ size }} {{ download.mimetype }} {{ bandwidth }}<ng-container *ngIf="eta"> - {{ eta }} remaining</ng-container>
       </mat-card-subtitle>
     </mat-card-header>
     <mat-card-content>

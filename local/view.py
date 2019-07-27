@@ -13,7 +13,7 @@ def serialize(request, cls, obj_id, level):
     for col in cls.__table__.columns:
         val = getattr(obj, col.name)
         if isinstance(val, datetime):
-            val = val.isoformat()
+            val = datetime.timestamp(val)
         elif isinstance(val, enum.Enum):
             val = val.name
         r[col.name] = val

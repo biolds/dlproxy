@@ -33,13 +33,15 @@ export class DownloadService {
         catchError(this.handleError<Download>('getDownload', {
           id: 0,
           url: {id: 0, url: ''},
-          date: '',
+          date: 0,
           filesize: 0,
           filename: '',
           mimetype: '',
           current_size: 0,
           to_keep: false,
-          downloaded: false
+          downloaded: false,
+          bandwidth: null,
+          stats_date: 0
         }))
       );
   }

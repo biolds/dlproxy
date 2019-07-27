@@ -21,7 +21,8 @@ class Download(Base):
     mimetype = Column(String(64))
     to_keep = Column(Boolean, default=False)
     downloaded = Column(Boolean, default=False)
-
+    stats_date = Column(DateTime, default=func.now())
+    bandwidth = Column(Integer, default=None)
 
     def get_path_cache(self):
         return 'cache/%i' % self.id
@@ -73,7 +74,7 @@ def download_save(request, obj_id):
     download = request.db.query(Download).get(obj_id)
     download.to_keep = True
 
-    #Find a non-existent filename
+    # Find a non-existent filename
     if '.' in download.filename:
         file_prefix, file_suffix = download.filename.rsplit('.', 1)
     else:
@@ -85,7 +86,7 @@ def download_save(request, obj_id):
         if file_suffix:
             filename += '.' + file_suffix
 
-        if not os.path.exists('download/' + filename):
+        if not os.path.exists('downloads/' + filename):
             break
 
     download.filename = filename

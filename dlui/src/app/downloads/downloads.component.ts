@@ -9,6 +9,7 @@ import { ObjList } from '../objlist';
   styleUrls: ['./downloads.component.css']
 })
 export class DownloadsComponent implements OnInit {
+  interval: number;
   downloads: ObjList<Download>;
 
   constructor(
@@ -21,11 +22,13 @@ export class DownloadsComponent implements OnInit {
       let objs = downloads.objs;
       objs.reverse();
       this.downloads.objs = objs;
-      console.log('got downloads:', downloads);
     })
   }
 
   ngOnInit() {
     this.getDownloads();
+    this.interval = setInterval(() => {
+        this.getDownloads();
+    }, 5000);
   }
 }

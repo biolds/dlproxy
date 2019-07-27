@@ -13,6 +13,8 @@ export class DownloadComponent implements OnInit {
   @Input() downloadData: Download;
   download: Download;
   progress: number;
+  bandwidth: string;
+  eta: string;
   downloadStarted: boolean;
   size: string;
   interval: number;
@@ -23,20 +25,50 @@ export class DownloadComponent implements OnInit {
     private route: ActivatedRoute
   ) {}
 
-  loadData(download: Download): void {
-    this.download = download;
-    this.progress = download.current_size / download.filesize * 100;
-
+  humanSize(size: number): string {
     const unit = ['', 'k', 'M', 'G', 'T'];
     let i = 0;
-    let size = download.filesize;
 
     while (size > 1024) {
       size /= 1024;
       i++;
     }
     size = Math.round(size);
-    this.size = `${size} ${unit[i]}B`;
+    return `${size} ${unit[i]}B`;
+  }
+
+  humanETA(eta: number): string {
+    if (eta < 60) {
+      return Math.round(eta) + ' seconds';
+    }
+    eta /= 60;
+
+    if (eta < 60) {
+      return Math.round(eta) + ' minutes';
+    }
+
+    if (eta < 24 * 60) {
+        return Math.trunc(eta / 60) + ':' + Math.round(eta % 60);
+    }
+
+    eta /= 24 * 60;
+    eta = Math.round(eta);
+    return `${eta} day` + (eta >= 2) ? 's' : '';
+  }
+
+  loadData(download: Download): void {
+    this.download = download;
+    this.progress = download.current_size / download.filesize * 100;
+    this.size = this.humanSize(download.filesize);
+
+    if (download.bandwidth !== null) {
+        this.bandwidth = this.humanSize(download.bandwidth) + '/s';
+
+        let eta = (download.filesize - download.current_size);
+        eta -= ((Date.now() / 1000) - download.stats_date) * download.bandwidth;
+        eta /= download.bandwidth;
+        this.eta =  this.humanETA(eta);
+    }
   }
 
   getDownload(): void {

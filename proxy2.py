@@ -14,6 +14,7 @@ import time
 import json
 import re
 import cgi
+from datetime import datetime
 from ipaddress import ip_address
 from http.server import HTTPServer, BaseHTTPRequestHandler, HTTPStatus
 from socketserver import ThreadingMixIn
@@ -353,11 +354,20 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                     break
                 fd.write(res_body)
 
-                # Check the entry in the db still exists, to cancel the download otherwise
                 if i % 16 == 0 and download:
                     self.db.flush()
-                    if self.db.query(Download).get(download.id) is None:
+                    download = self.db.query(Download).get(download.id)
+
+                    # Check the entry in the db still exists, to cancel the download otherwise
+                    if download is None:
                         break
+
+                    now = datetime.now()
+                    dt = now - download.stats_date
+                    download.bandwidth = (16 * 1024) / dt.total_seconds()
+                    download.stats_date = now
+                    self.db.add(download)
+                    self.db.commit()
 
                 i += 1
 
@@ -373,12 +383,14 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                     filepath = download.get_path_cache()
 
                 download.filesize = os.stat(filepath).st_size
-                
+
                 m = magic.Magic(mime=True, uncompress=False)
                 mime = m.from_file(filepath)
                 if ';' in mime:
                     mime = mime.split(';', 1)[0]
                 download.mimetype = mime
+                download.stats_date = None
+                download.bandwidth = None
 
                 self.db.add(download)
                 self.db.commit()
