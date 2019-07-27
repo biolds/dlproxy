@@ -8,6 +8,8 @@ from local.cacert import cacert_download, cacert_generate
 from local.download import dl_download, download_delete, downloads_view, download_view, download_save, direct_download
 from local.settings import settings_view
 from local.index import render_index, UI_INDEX, UI_PATH
+from local.view import api_list_view
+from local.access import UrlAccess
 
 
 class Router:
@@ -27,7 +29,8 @@ class Router:
             'cacert': {
                 'generate': cacert_generate,
             },
-            'settings': settings_view
+            'settings': settings_view,
+            'urls': lambda x: api_list_view(UrlAccess, 1, x)
         }
     }
 

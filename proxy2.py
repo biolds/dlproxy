@@ -142,8 +142,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 else:
                     self.path = "http://%s%s" % (self.headers['Host'], self.path)
 
-            db_url = UrlAccess.log(self.db, self.path, self.headers['Referer'])
-
             my_addr = my_address().rstrip('/')
             my_addr = my_addr[len('http://'):]
 
@@ -152,6 +150,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 global conf
                 router.handle(self, conf)
             else:
+                db_url = UrlAccess.log(self.db, self.path, self.headers['Referer'])
                 self.proxy_request()
             self.wfile.flush() #actually send the response if not already done.
         except socket.timeout as e:

@@ -48,7 +48,7 @@ export class DownloadService {
   }
 
   downloadList(): Observable<ObjList<Download>> {
-    return this.http.get<ObjList<Download>>(`/api/downloads`);
+    return this.http.get<ObjList<Download>>('/api/downloads');
   }
 
   saveDownload(id: number): Observable<any> {

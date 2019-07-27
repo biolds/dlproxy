@@ -25,6 +25,8 @@ import { MaintabsComponent } from './maintabs/maintabs.component';
 import { SettingsComponent } from './settings/settings.component';
 import { DownloadComponent, DownloadCancelDialog } from './download/download.component';
 import { DownloadsComponent } from './downloads/downloads.component';
+import { HistoryComponent } from './history/history.component';
+import { UrlComponent } from './url/url.component';
 
 @NgModule({
   declarations: [
@@ -34,7 +36,9 @@ import { DownloadsComponent } from './downloads/downloads.component';
     ErrorComponent,
     MaintabsComponent,
     SettingsComponent,
-    DownloadsComponent
+    DownloadsComponent,
+    HistoryComponent,
+    UrlComponent
   ],
   entryComponents: [
     DownloadCancelDialog

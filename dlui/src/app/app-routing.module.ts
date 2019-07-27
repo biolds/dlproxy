@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { Routes, RouterModule, UrlSegment } from '@angular/router';
 import { DownloadComponent } from './download/download.component';
 import { DownloadsComponent } from './downloads/downloads.component';
+import { HistoryComponent } from './history/history.component';
 import { ErrorComponent } from './error/error.component';
 import { MaintabsComponent } from './maintabs/maintabs.component';
 import { SettingsComponent } from './settings/settings.component';
@@ -40,7 +41,8 @@ const routes: Routes = [
   { path: '', component: MaintabsComponent,
     children: [
       { path: 'downloads', component: DownloadsComponent },
-      { path: '', component: SettingsComponent }
+      { path: 'settings', component: SettingsComponent },
+      { path: '', component: HistoryComponent }
     ]
   },
   { path: '**', component: ErrorComponent, },

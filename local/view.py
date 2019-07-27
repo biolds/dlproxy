@@ -30,6 +30,12 @@ def serialize(request, cls, obj_id, level):
     return r
 
 
+def api_detail_view(cls, level, request, obj_id):
+    r = serialize(request, cls, obj_id, level)
+    r = json.dumps(r).encode('ascii')
+    request.send_content_response(r, 'application/json')
+
+
 def list_serialize(request, cls, _filter, level):
     objs = request.db.query(cls).filter_by(**_filter)
 
@@ -39,6 +45,7 @@ def list_serialize(request, cls, _filter, level):
 
     order = getattr(cls, order)
     objs = objs.order_by(desc(order))
+    objs = objs.limit(30)
 
     r = {
         'count': objs.count(),
@@ -51,7 +58,7 @@ def list_serialize(request, cls, _filter, level):
     return r
 
 
-def api_detail_view(cls, level, request, obj_id):
-    r = serialize(request, cls, obj_id, level)
+def api_list_view(cls, level, request):
+    r = list_serialize(request, cls, {}, level)
     r = json.dumps(r).encode('ascii')
     request.send_content_response(r, 'application/json')
