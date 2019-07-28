@@ -10,9 +10,13 @@ import { UrlAccess, URL_HEIGHT } from '../url-access';
 export class UrlComponent implements OnInit {
   @Input() url: UrlAccess;
   URL_HEIGHT = URL_HEIGHT;
+  date: string;
 
   constructor() { }
 
   ngOnInit() {
+    let d = new Date(0);
+    d.setUTCSeconds(this.url.date);
+    this.date = d.toLocaleString();
   }
 }
