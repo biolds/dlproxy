@@ -95,13 +95,23 @@ def list_serialize(request, query, cls, level, limit=30):
         objs = objs.order_by(order)
 
     if 'offset' in query:
-        objs = objs.offset(int(query['offset']))
+        offset = int(query['offset'])
+        objs = objs.offset(offset)
+    else:
+        offset = 0
 
-    if limit:
+
+    if 'limit' in query:
+        limit = int(query['limit'])
+        if limit >= 1000:
+            limit = 1000
+
+    if limit is not None:
         objs = objs.limit(limit)
 
     r = {
         'count': count,
+        'offset': offset,
         'objs': []
     }
 

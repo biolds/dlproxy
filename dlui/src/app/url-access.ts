@@ -6,3 +6,5 @@ export class UrlAccess {
   date: number;
   referer: Url;
 }
+
+export const URL_HEIGHT = 50;

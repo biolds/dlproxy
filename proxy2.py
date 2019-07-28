@@ -180,12 +180,13 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         try:
             res = method(*args)
         finally:
-            mime = None
-            if res:
-                mime = res.getheader('content-type', 'application/octet-stream')
-                if ';' in mime:
-                    mime = mime.split(';', 1)[0]
-            UrlAccess.log(self.db, self.path, mime, self.headers['Referer'])
+            if self.command != 'CONNECT':
+                mime = None
+                if res:
+                    mime = res.getheader('content-type', 'application/octet-stream')
+                    if ';' in mime:
+                        mime = mime.split(';', 1)[0]
+                UrlAccess.log(self.db, self.path, mime, self.headers['Referer'])
 
     def render_index(self, status, *args, **kwargs):
         response = "%s %d %s\r\n" % (self.protocol_version, status.value, status.name)

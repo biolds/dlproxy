@@ -1,6 +1,6 @@
 import { Component, OnInit, Input } from '@angular/core';
 
-import { UrlAccess } from '../url-access';
+import { UrlAccess, URL_HEIGHT } from '../url-access';
 
 @Component({
   selector: 'app-url',
@@ -9,6 +9,7 @@ import { UrlAccess } from '../url-access';
 })
 export class UrlComponent implements OnInit {
   @Input() url: UrlAccess;
+  URL_HEIGHT = URL_HEIGHT;
 
   constructor() { }
 
