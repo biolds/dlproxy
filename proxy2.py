@@ -150,7 +150,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 global conf
                 router.handle(self, conf)
             else:
-                db_url = UrlAccess.log(self.db, self.path, self.headers['Referer'])
                 self.proxy_request()
             self.wfile.flush() #actually send the response if not already done.
         except socket.timeout as e:
@@ -176,7 +175,17 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             args = [True]
 
         method = getattr(self, mname)
-        method(*args)
+
+        res = None
+        try:
+            res = method(*args)
+        finally:
+            mime = None
+            if res:
+                mime = res.getheader('content-type', 'application/octet-stream')
+                if ';' in mime:
+                    mime = mime.split(';', 1)[0]
+            UrlAccess.log(self.db, self.path, mime, self.headers['Referer'])
 
     def render_index(self, status, *args, **kwargs):
         response = "%s %d %s\r\n" % (self.protocol_version, status.value, status.name)
@@ -216,8 +225,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         ex = args[0]
         if isinstance(ex, Exception):
             exc = ''.join(format_exception(etype=type(ex), value=ex, tb=ex.__traceback__))
-            print('exc')
-            self.log_message(exc)
+            self.log_message(exc.replace('%', '%%'))
 
     def do_CONNECT(self):
         if os.path.isfile(self.cakey) and os.path.isfile(self.cacert) and os.path.isfile(self.certkey) and os.path.isdir(self.certdir):
@@ -286,6 +294,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self, inject=False):
         download = False
+        res = None
         req = self
         content_length = int(req.headers.get('Content-Length', 0))
         req_body = self.rfile.read(content_length) if content_length else None
@@ -334,7 +343,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                                                 or res.getheader('content-type',  '').startswith('text/html;')):
                 print('injecting live')
                 self.render_index(HTTPStatus.OK, 'angular', index=res.read())
-                return
+                return res
             else:
                 response = "%s %d %s\r\n" % (self.protocol_version, res.status, res.reason)
                 self.wfile.write(response.encode('ascii'))
@@ -403,6 +412,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             self.send_error(502, repr(e))
             raise
+        return res
 
     def _is_download(self, netloc, path, res):
         if ':' in netloc:

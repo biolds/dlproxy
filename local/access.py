@@ -14,9 +14,11 @@ class UrlAccess(Base):
     referer = relationship(Url, foreign_keys=[referer_id])
 
     @classmethod
-    def log(cls, db, url, referer):
-        url = Url.get_or_create(db, url)
-        referer = Url.get_or_create(db, referer)
-        access = UrlAccess(url=url, referer=referer)
+    def log(cls, db, url, mime, referer):
+        url = Url.get_or_create(db, url, mime)
+        referer_url = None
+        if referer:
+            referer_url = Url.get_or_create(db, referer)
+        access = UrlAccess(url=url, referer=referer_url)
         db.add(access)
         db.commit()

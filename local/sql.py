@@ -12,20 +12,25 @@ class Url(Base):
     __tablename__ = 'url'
     id = Column(Integer, primary_key=True)
     url = Column(String(65536))
+    mimetype = Column(String(64))
 
     @classmethod
-    def get_or_create(cls, db, url):
-        res = db.query(Url).filter_by(url=url).first()
-        if res:
-            return res
+    def get_or_create(cls, db, url, mime=None):
+        instance = db.query(Url).filter_by(url=url).first()
+        if not instance:
+            try:
+                with db.begin_nested():
+                    instance = Url(url=url, mimetype=mime)
+                    db.add(instance)
+                    return instance
+            except IntegrityError:
+                instance = db.query(Url).filter_by(url=url).one()
 
-        try:
-            with db.begin_nested():
-                instance = Url(url=url)
-                db.add(instance)
-                return instance
-        except IntegrityError:
-            return db.query(Url).filter_by(url=url).one()
+        if mime and instance.mimetype != mime:
+            instance.mimetype = mime
+            db.add(instance)
+
+        return instance
 
 
 def init_db(conf, engine):

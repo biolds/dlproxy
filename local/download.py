@@ -49,7 +49,7 @@ class Download(Base):
 
 
 def downloads_view(request, query):
-    downloads = list_serialize(request, Download, {}, 1)
+    downloads = list_serialize(request, query, Download, 1, None)
     for d in downloads['objs']:
         if d['downloaded']:
             d['current_size'] = d['filesize']

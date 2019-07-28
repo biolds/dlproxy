@@ -25,7 +25,10 @@ def serialize(request, cls, obj_id, level):
         for key, val in inspect(cls).relationships.items():
             rel_id_attr = list(val.local_columns)[0].name
             rel_id = getattr(obj, rel_id_attr)
-            r[key] = serialize(request, val.argument, rel_id, level)
+            if rel_id is None:
+                r[key] = None
+            else:
+                r[key] = serialize(request, val.argument, rel_id, level)
 
     return r
 
@@ -36,19 +39,69 @@ def api_detail_view(cls, level, request, query, obj_id):
     request.send_content_response(r, 'application/json')
 
 
-def list_serialize(request, cls, _filter, level):
-    objs = request.db.query(cls).filter_by(**_filter)
-
+def list_serialize(request, query, cls, level, limit=30):
+    # Ordering
     order = 'id'
+    descending = True
+
     if hasattr(cls, 'date'):
         order = 'date'
 
-    order = getattr(cls, order)
-    objs = objs.order_by(desc(order))
-    objs = objs.limit(30)
+    if query.get('order'):
+        descending = False
+        order = query['order']
+        if order.startswith('-'):
+            descending = True
+            order = order[1:]
+
+    if hasattr(cls, order):
+        order = getattr(cls, order)
+
+        if descending:
+            order = desc(order)
+    else:
+        order = None
+
+    # Filtering
+    filters = []
+    for key, val in query.items():
+        if not key.startswith('f_'):
+            continue
+
+        key = key[2:]
+
+        if '__' in key:
+            # Build query to filter on relationship, like:
+            # db.query(UrlAccess).filter(UrlAccess.url.has(Url.id == 1))
+
+            attr, subattr = key.split('__', 1)
+
+            rel = getattr(cls, attr, None)
+            rel_cls = inspect(cls).relationships[attr].argument
+            rel_attr = getattr(rel_cls, subattr, None)
+
+            if rel is None or rel_attr is None:
+                continue
+
+            has = rel.has(rel_attr == val)
+            filters.append(has)
+        elif hasattr(cls, key):
+            filters.append(getattr(cls, key) == val)
+
+    objs = request.db.query(cls).filter(*filters)
+    count = objs.count()
+
+    if order is not None:
+        objs = objs.order_by(order)
+
+    if 'offset' in query:
+        objs = objs.offset(int(query['offset']))
+
+    if limit:
+        objs = objs.limit(limit)
 
     r = {
-        'count': objs.count(),
+        'count': count,
         'objs': []
     }
 
@@ -59,6 +112,6 @@ def list_serialize(request, cls, _filter, level):
 
 
 def api_list_view(cls, level, request, query):
-    r = list_serialize(request, cls, {}, level)
+    r = list_serialize(request, query, cls, level)
     r = json.dumps(r).encode('ascii')
     request.send_content_response(r, 'application/json')
