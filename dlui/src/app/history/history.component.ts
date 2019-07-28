@@ -1,5 +1,6 @@
 import { Component, HostListener, OnInit, ViewChild } from '@angular/core';
 import { Observable, Subject, of } from 'rxjs';
+import { FormBuilder } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 
 import { ObjList } from '../objlist';
@@ -13,6 +14,9 @@ import { UrlService } from '../url.service';
 })
 export class HistoryComponent implements OnInit {
   @ViewChild('historyList', {static: false}) historyList;
+  viewForm = this.fb.group({
+    mimeFilter: ['webpages'],
+  })
   interval: number;
   yPos: number;
   urlsHeight: number;
@@ -22,7 +26,10 @@ export class HistoryComponent implements OnInit {
   loading = false;
   private scrollPosition = new Subject<number>();
 
-  constructor(private urlService: UrlService) { }
+  constructor(
+    private urlService: UrlService,
+    private fb: FormBuilder) {
+  }
 
   trackByUrls(index: number, url: UrlAccess): number {
     return url.id;
@@ -33,7 +40,13 @@ export class HistoryComponent implements OnInit {
     let urlMin = position - (Math.round(window.innerHeight / URL_HEIGHT));
     urlMin = urlMin < 0 ? 0 : urlMin;
 
-    this.urlService.getUrlAccesses(urlMin, urlMax - urlMin).subscribe((urls) => {
+    let filter = '';
+    console.log('mime', this.viewForm.value.mimeFilter);
+    if (this.viewForm.value.mimeFilter == 'webpages') {
+      filter = 'f_url__mimetype=text/html';
+    }
+
+    this.urlService.getUrlAccesses(urlMin, urlMax - urlMin, filter).subscribe((urls) => {
       this.urls = urls;
       this.urlsHeight = this.urls.count * URL_HEIGHT;
       this.urlsTop = urlMin * URL_HEIGHT;

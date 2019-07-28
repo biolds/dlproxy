@@ -180,7 +180,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         try:
             res = method(*args)
         finally:
-            if self.command != 'CONNECT':
+            if self.command != 'CONNECT' and not inject:
                 mime = None
                 if res:
                     mime = res.getheader('content-type', 'application/octet-stream')

@@ -1,3 +1,11 @@
+<form [formGroup]="viewForm" class="right-align">
+  <mat-form-field>
+    <mat-select matInput formControlName="mimeFilter" value="webpages" (selectionChange)="refreshUrls()">
+      <mat-option value="webpages">Webpages</mat-option>
+      <mat-option value="all">All</mat-option>
+    </mat-select>
+  </mat-form-field>
+</form>
 <div #historyList [ngStyle]="{'height': urlsHeight + 'px'}">
   <mat-list *ngIf="urls" [ngStyle]="{'padding-top': urlsTop + 'px'}">
     <app-url *ngFor="let url of urls.objs; trackBy: trackByUrls"

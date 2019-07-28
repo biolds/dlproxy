@@ -17,6 +17,7 @@ import { MatInputModule } from '@angular/material';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material';
 
@@ -59,6 +60,7 @@ import { UrlComponent } from './url/url.component';
     MatListModule,
     MatProgressBarModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
     MatTabsModule,
     MatFormFieldModule
   ],

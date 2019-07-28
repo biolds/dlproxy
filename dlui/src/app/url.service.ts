@@ -12,7 +12,11 @@ export class UrlService {
 
   constructor(private http: HttpClient) { }
 
-  getUrlAccesses(offset: number, limit: number): Observable<ObjList<UrlAccess>> {
-    return this.http.get<ObjList<UrlAccess>>(`/api/urls?offset=${offset}&limit=${limit}`);
+  getUrlAccesses(offset: number, limit: number, filter: string): Observable<ObjList<UrlAccess>> {
+    let url = `/api/urls?offset=${offset}&limit=${limit}`;
+    if (filter) {
+      url += `&${filter}`;
+    }
+    return this.http.get<ObjList<UrlAccess>>(url);
   }
 }
