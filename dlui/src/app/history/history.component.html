@@ -1,10 +1,22 @@
-<form [formGroup]="viewForm" class="right-align">
+<form [formGroup]="viewForm">
   <mat-form-field>
-    <mat-select matInput formControlName="mimeFilter" value="webpages" (selectionChange)="refreshUrls()">
-      <mat-option value="webpages">Webpages</mat-option>
-      <mat-option value="all">All</mat-option>
-    </mat-select>
+    <input matInput [matDatepicker]="picker1" placeholder="From" formControlName="startDate" (dateChange)="refreshUrls()">
+    <mat-datepicker-toggle matSuffix [for]="picker1"></mat-datepicker-toggle>
+    <mat-datepicker #picker1></mat-datepicker>
   </mat-form-field>
+  <mat-form-field>
+    <input matInput [matDatepicker]="picker2" placeholder="To" formControlName="endDate" (dateChange)="refreshUrls()">
+    <mat-datepicker-toggle matSuffix [for]="picker2"></mat-datepicker-toggle>
+    <mat-datepicker #picker2></mat-datepicker>
+  </mat-form-field>
+  <span class="right-align">
+    <mat-form-field>
+      <mat-select matInput formControlName="mimeFilter" value="webpages" (selectionChange)="refreshUrls()">
+        <mat-option value="webpages">Webpages</mat-option>
+        <mat-option value="all">All</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </span>
 </form>
 <div #historyList [ngStyle]="{'height': urlsHeight + 'px'}">
   <mat-list *ngIf="urls" [ngStyle]="{'padding-top': urlsTop + 'px'}">

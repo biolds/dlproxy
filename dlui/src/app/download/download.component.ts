@@ -61,7 +61,7 @@ export class DownloadComponent implements OnInit {
   loadData(download: Download): void {
     this.download = download;
     this.progress = download.current_size / download.filesize * 100;
-    this.size = this.humanSize(download.filesize);
+    this.size = this.humanSize(download.current_size);
 
     if (download.bandwidth !== null) {
         this.bandwidth = this.humanSize(download.bandwidth) + '/s';

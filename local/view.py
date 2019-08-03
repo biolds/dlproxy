@@ -2,7 +2,7 @@ from datetime import datetime
 import enum
 import json
 
-from sqlalchemy import desc
+from sqlalchemy import desc, DateTime
 from sqlalchemy.inspection import inspect
 
 
@@ -39,6 +39,31 @@ def api_detail_view(cls, level, request, query, obj_id):
     request.send_content_response(r, 'application/json')
 
 
+OPERATORS = ('eq', 'gt', 'gte', 'lt', 'lte')
+
+
+def op_func(op, a, b):
+    OP = {
+        'eq': '=',
+        'gt': '>',
+        'gte': '>=',
+        'lt': '<',
+        'lte': '<='
+    }
+    if op not in OPERATORS:
+        raise Exception('Operator "%s" not supported' % op)
+    op = OP[op]
+    return a.op(op)(b)
+
+
+def convert_value(cls, attr, val):
+    columns = inspect(cls).columns
+    col_type = getattr(columns, attr).type
+    if isinstance(col_type, DateTime):
+        return datetime.fromtimestamp(int(val))
+    return val
+
+
 def list_serialize(request, query, cls, level, limit=30):
     # Ordering
     order = 'id'
@@ -69,12 +94,23 @@ def list_serialize(request, query, cls, level, limit=30):
             continue
 
         key = key[2:]
+        op = 'eq'
 
         if '__' in key:
             # Build query to filter on relationship, like:
             # db.query(UrlAccess).filter(UrlAccess.url.has(Url.id == 1))
 
             attr, subattr = key.split('__', 1)
+
+            if subattr in OPERATORS:
+                val = convert_value(cls, attr, val)
+                filters.append(op_func(subattr, getattr(cls, attr), val))
+                print('added filter %s %s %s' % (attr, subattr, val))
+                continue
+
+            op = 'eq'
+            if '__' in subattr:
+                subattr, op = subattr.rsplit('__', 1)
 
             rel = getattr(cls, attr, None)
             rel_cls = inspect(cls).relationships[attr].argument
@@ -83,11 +119,12 @@ def list_serialize(request, query, cls, level, limit=30):
             if rel is None or rel_attr is None:
                 continue
 
-            has = rel.has(rel_attr == val)
+            has = rel.has(op_func(op, rel_attr, val))
             filters.append(has)
         elif hasattr(cls, key):
-            filters.append(getattr(cls, key) == val)
+            filters.append(op_func('eq', getattr(cls, key), val))
 
+    print('filter %s' % filters)
     objs = request.db.query(cls).filter(*filters)
     count = objs.count()
 

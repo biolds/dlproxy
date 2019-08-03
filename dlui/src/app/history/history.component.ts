@@ -2,6 +2,10 @@ import { Component, HostListener, OnInit, ViewChild } from '@angular/core';
 import { Observable, Subject, of } from 'rxjs';
 import { FormBuilder } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { MAT_MOMENT_DATE_FORMATS, MomentDateAdapter } from '@angular/material-moment-adapter';
+import { DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE } from '@angular/material/core';
+import * as moment from 'moment';
+
 
 import { ObjList } from '../objlist';
 import { UrlAccess, URL_HEIGHT } from '../url-access';
@@ -10,11 +14,17 @@ import { UrlService } from '../url.service';
 @Component({
   selector: 'app-history',
   templateUrl: './history.component.html',
-  styleUrls: ['./history.component.css']
+  styleUrls: ['./history.component.css'],
+  providers: [
+    {provide: DateAdapter, useClass: MomentDateAdapter, deps: [MAT_DATE_LOCALE]},
+    {provide: MAT_DATE_FORMATS, useValue: MAT_MOMENT_DATE_FORMATS},
+  ]
 })
 export class HistoryComponent implements OnInit {
   @ViewChild('historyList', {static: false}) historyList;
   viewForm = this.fb.group({
+    startDate: 0,
+    endDate: 0,
     mimeFilter: ['webpages'],
   })
   interval: number;
@@ -40,10 +50,14 @@ export class HistoryComponent implements OnInit {
     let urlMin = position - (Math.round(window.innerHeight / URL_HEIGHT));
     urlMin = urlMin < 0 ? 0 : urlMin;
 
-    let filter = '';
-    console.log('mime', this.viewForm.value.mimeFilter);
+    let startDate = this.viewForm.value.startDate.hours(0).minutes(0).seconds(0).unix();
+    let endDate = this.viewForm.value.endDate.hours(0).minutes(0).seconds(0).unix();
+    endDate += 60 * 60 * 24;
+
+    let filter = `f_date__gte=${startDate}&f_date__lt=${endDate}`;
+
     if (this.viewForm.value.mimeFilter == 'webpages') {
-      filter = 'f_url__mimetype=text/html';
+      filter += '&f_url__mimetype=text/html';
     }
 
     this.urlService.getUrlAccesses(urlMin, urlMax - urlMin, filter).subscribe((urls) => {
@@ -89,6 +103,7 @@ export class HistoryComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.viewForm.patchValue({startDate: moment(), endDate: moment()});
     this.positions$ = this.scrollPosition.pipe(
       // wait 100ms after each keystroke before considering the term
       debounceTime(100),
