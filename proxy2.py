@@ -329,7 +329,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             if inject:
                 print('inject/content-type:', res.getheader('content-type'))
 
-            if download:
+            if download and res.status >= 200 and res.status < 300:
                 filename = filename.replace('/', '').replace('\\', '').lstrip('.')
                 db_url = Url.get_or_create(self.db, req.path)
                 download = Download(url=db_url, filesize=res.getheader('content-length', 0), filename=filename, mimetype=res.getheader('content-type'))
@@ -430,6 +430,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
 
         print('is_download path: %s' % path)
+        if path.startswith('https://www.google.com/async/'):
+            return False, None
+
         if netloc in ('googleads.g.doubleclick.net', 'sb-ssl.google.com', 'safebrowsing.googleapis.com',
                         'clientservices.googleapis.com'):
             return False, None
