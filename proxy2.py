@@ -430,7 +430,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
 
         print('is_download path: %s' % path)
-        if path.startswith('https://www.google.com/async/'):
+        if netloc == 'www.google.com' and path.startswith('/async/'):
             return False, None
 
         if netloc in ('googleads.g.doubleclick.net', 'sb-ssl.google.com', 'safebrowsing.googleapis.com',

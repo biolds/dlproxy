@@ -9,6 +9,10 @@
     <mat-datepicker-toggle matSuffix [for]="picker2"></mat-datepicker-toggle>
     <mat-datepicker #picker2></mat-datepicker>
   </mat-form-field>
+  <mat-icon class="search-icon">search</mat-icon>
+  <mat-form-field>
+    <input matInput placeholder="Search" formControlName="search" (input)="refreshUrls()">
+  </mat-form-field>
   <span class="right-align">
     <mat-form-field>
       <mat-select matInput formControlName="mimeFilter" value="webpages" (selectionChange)="refreshUrls()">

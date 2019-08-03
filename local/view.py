@@ -39,7 +39,7 @@ def api_detail_view(cls, level, request, query, obj_id):
     request.send_content_response(r, 'application/json')
 
 
-OPERATORS = ('eq', 'gt', 'gte', 'lt', 'lte')
+OPERATORS = ('eq', 'gt', 'gte', 'lt', 'lte', 'ilike')
 
 
 def op_func(op, a, b):
@@ -48,11 +48,19 @@ def op_func(op, a, b):
         'gt': '>',
         'gte': '>=',
         'lt': '<',
-        'lte': '<='
+        'lte': '<=',
+        'ilike': 'ilike'
     }
     if op not in OPERATORS:
         raise Exception('Operator "%s" not supported' % op)
     op = OP[op]
+
+    if op == 'ilike':
+        b = b.replace('\\', '\\\\')
+        b = b.replace('%', '\\%')
+        b = b.replace('_', '\\_')
+        b = '%' + b + '%'
+
     return a.op(op)(b)
 
 

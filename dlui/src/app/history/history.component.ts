@@ -23,6 +23,7 @@ import { UrlService } from '../url.service';
 export class HistoryComponent implements OnInit {
   @ViewChild('historyList', {static: false}) historyList;
   viewForm = this.fb.group({
+    search: '',
     startDate: 0,
     endDate: 0,
     mimeFilter: ['webpages'],
@@ -56,8 +57,12 @@ export class HistoryComponent implements OnInit {
 
     let filter = `f_date__gte=${startDate}&f_date__lt=${endDate}`;
 
-    if (this.viewForm.value.mimeFilter == 'webpages') {
+    if (this.viewForm.value.mimeFilter === 'webpages') {
       filter += '&f_url__mimetype=text/html';
+    }
+
+    if (this.viewForm.value.search !== '') {
+      filter += `&f_url__url__ilike=${this.viewForm.value.search}`;
     }
 
     this.urlService.getUrlAccesses(urlMin, urlMax - urlMin, filter).subscribe((urls) => {
@@ -104,6 +109,7 @@ export class HistoryComponent implements OnInit {
 
   ngOnInit() {
     this.viewForm.patchValue({startDate: moment(), endDate: moment()});
+
     this.positions$ = this.scrollPosition.pipe(
       // wait 100ms after each keystroke before considering the term
       debounceTime(100),
