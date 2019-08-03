@@ -2,6 +2,10 @@ mat-form-field {
   padding: 5px;
 }
 
+#search {
+  width: 50%;
+}
+
 .right-align {
   float: right;
 }

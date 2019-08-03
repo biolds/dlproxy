@@ -182,11 +182,14 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         finally:
             if self.command != 'CONNECT' and not inject:
                 mime = None
+                status = 404
                 if res:
                     mime = res.getheader('content-type', 'application/octet-stream')
                     if ';' in mime:
                         mime = mime.split(';', 1)[0]
-                UrlAccess.log(self.db, self.path, mime, self.headers['Referer'])
+                    status = res.status
+
+                UrlAccess.log(self.db, self.path, mime, self.headers['Referer'], status)
 
     def render_index(self, status, *args, **kwargs):
         response = "%s %d %s\r\n" % (self.protocol_version, status.value, status.name)

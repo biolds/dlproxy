@@ -27,6 +27,7 @@ export class HistoryComponent implements OnInit {
     startDate: 0,
     endDate: 0,
     mimeFilter: ['webpages'],
+    httpStatus: ['2'],
   })
   interval: number;
   yPos: number;
@@ -63,6 +64,13 @@ export class HistoryComponent implements OnInit {
 
     if (this.viewForm.value.search !== '') {
       filter += `&f_url__url__ilike=${this.viewForm.value.search}`;
+    }
+
+    if (this.viewForm.value.httpStatus !== 'all') {
+      let s = this.viewForm.value.httpStatus;
+      s = parseInt(s, 10);
+      console.log('status:', s);
+      filter += `&f_status__gte=${s}00&f_status__lt=${s + 1}00`;
     }
 
     this.urlService.getUrlAccesses(urlMin, urlMax - urlMin, filter).subscribe((urls) => {

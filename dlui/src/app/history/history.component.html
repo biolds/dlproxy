@@ -10,9 +10,21 @@
     <mat-datepicker #picker2></mat-datepicker>
   </mat-form-field>
   <mat-icon class="search-icon">search</mat-icon>
-  <mat-form-field>
+  <mat-form-field id="search">
     <input matInput placeholder="Search" formControlName="search" (input)="refreshUrls()">
   </mat-form-field>
+  <span class="right-align">
+    <mat-form-field>
+      <mat-select matInput formControlName="httpStatus" value="2" (selectionChange)="refreshUrls()">
+        <mat-option value="1">Informational</mat-option>
+        <mat-option value="2">Success</mat-option>
+        <mat-option value="3">Redicrection</mat-option>
+        <mat-option value="4">Client error</mat-option>
+        <mat-option value="5">Server error</mat-option>
+        <mat-option value="all">All</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </span>
   <span class="right-align">
     <mat-form-field>
       <mat-select matInput formControlName="mimeFilter" value="webpages" (selectionChange)="refreshUrls()">

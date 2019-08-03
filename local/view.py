@@ -2,7 +2,7 @@ from datetime import datetime
 import enum
 import json
 
-from sqlalchemy import desc, DateTime
+from sqlalchemy import desc, DateTime, Integer
 from sqlalchemy.inspection import inspect
 
 
@@ -69,6 +69,8 @@ def convert_value(cls, attr, val):
     col_type = getattr(columns, attr).type
     if isinstance(col_type, DateTime):
         return datetime.fromtimestamp(int(val))
+    elif isinstance(col_type, Integer):
+        return int(val)
     return val
 
 
