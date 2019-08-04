@@ -11,6 +11,9 @@
     </a>
   </div>
   <div class="url">
-    {{ url.url.url }}
+    <span *ngFor="let path of url.paths">
+      <span class="hilight" *ngIf="path.matching">{{ path.path }}</span>
+      <span *ngIf="!path.matching">{{ path.path }}</span>
+    </span>
   </div>
 </mat-list-item>

@@ -13,14 +13,17 @@
   <mat-form-field id="search">
     <input matInput placeholder="Search" formControlName="search" (input)="refreshUrls()">
   </mat-form-field>
+  <a title="Clear" [routerLink]="" (click)="viewForm.patchValue({'search': ''}); refreshUrls();">
+    <mat-icon class="search-icon">clear</mat-icon>
+  </a>
   <span class="right-align">
     <mat-form-field>
       <mat-select matInput formControlName="httpStatus" value="2" (selectionChange)="refreshUrls()">
-        <mat-option value="1">Informational</mat-option>
+        <mat-option value="1">Informational (1xx)</mat-option>
         <mat-option value="2">Success</mat-option>
-        <mat-option value="3">Redicrection</mat-option>
-        <mat-option value="4">Client error</mat-option>
-        <mat-option value="5">Server error</mat-option>
+        <mat-option value="3">Redirection (3xx)</mat-option>
+        <mat-option value="4">Client error (4xx)</mat-option>
+        <mat-option value="5">Server error (5xx)</mat-option>
         <mat-option value="all">All</mat-option>
       </mat-select>
     </mat-form-field>

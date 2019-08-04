@@ -6,6 +6,10 @@ div {
   width: 180px;
 }
 
+.hilight {
+  color: #a983ef;
+}
+
 .url {
   width: 100%;
   white-space: nowrap;

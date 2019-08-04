@@ -87,12 +87,7 @@ class Router:
                 _path = _path[:-1]
             print('params:', _path)
 
-            _query = urllib.parse.parse_qs(u.query)
-            query = {}
-            # Each value is stored as a list, flatten them
-            for key, val in _query.items():
-                query[key] = val[-1]
-
+            query = urllib.parse.parse_qs(u.query)
             view(request, query, *_path)
 
 router = Router()

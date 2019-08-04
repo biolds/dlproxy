@@ -8,8 +8,13 @@ import * as moment from 'moment';
 
 
 import { ObjList } from '../objlist';
-import { UrlAccess, URL_HEIGHT } from '../url-access';
+import { UrlAccess, URL_HEIGHT, FilteredPath } from '../url-access';
 import { UrlService } from '../url.service';
+
+// https://stackoverflow.com/questions/3561493/is-there-a-regexp-escape-function-in-javascript/3561711
+function reEscape (s: string): string {
+    return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+};
 
 @Component({
   selector: 'app-history',
@@ -62,8 +67,10 @@ export class HistoryComponent implements OnInit {
       filter += '&f_url__mimetype=text/html';
     }
 
-    if (this.viewForm.value.search !== '') {
-      filter += `&f_url__url__ilike=${this.viewForm.value.search}`;
+    const searchTerms = this.viewForm.value.search.split(' ').filter(s => s !== '').map(s => s.toLowerCase());
+    if (searchTerms.length !== '') {
+      const urls = searchTerms.map(u => `&f_url__url__ilike=${u}`);
+      filter += urls.join('');
     }
 
     if (this.viewForm.value.httpStatus !== 'all') {
@@ -78,17 +85,47 @@ export class HistoryComponent implements OnInit {
       this.urlsHeight = this.urls.count * URL_HEIGHT;
       this.urlsTop = urlMin * URL_HEIGHT;
       this.updateLoading();
+
+      if (searchTerms.length !== 0) {
+        const regexpTerms = '(' + searchTerms.map(s => reEscape(s)).join('|') + ')';
+        console.log('regexp terms', regexpTerms);
+        const regexp = new RegExp(regexpTerms, 'i');
+
+        this.urls.objs = this.urls.objs.map(u => {
+          let paths = u.url.url.split(regexp);
+          return {
+            ...u,
+            paths: paths.map(p => {
+              return {
+                path: p,
+                matching: searchTerms.indexOf(p.toLowerCase()) !== -1
+              } as FilteredPath;
+            })
+          };
+        });
+        console.log('filteredUrls', this.urls.objs);
+      } else {
+        this.urls.objs = this.urls.objs.map(u => {
+          let filteredPath = {
+            path: u.url.url,
+            matching: false
+          } as FilteredPath;
+          return {
+            ...u,
+            paths: [filteredPath]
+          };
+        });
+      }
     });
   }
 
   updateLoading() {
     const windowBottom = this.scrollVal() + window.innerHeight - URL_HEIGHT;
     const displayedHeight = this.urls.objs.length * URL_HEIGHT;
-    if (this.scrollVal() < this.urlsTop || windowBottom > (this.urlsTop + displayedHeight)) {
-      this.loading = true;
-    } else {
-      this.loading = false;
-    }
+    const availableHeight = this.urls.count * URL_HEIGHT;
+
+    this.loading = this.scrollVal() < this.urlsTop;
+    this.loading = this.loading || (windowBottom > this.urlsTop + displayedHeight) && (windowBottom < availableHeight);
   }
 
   scrollVal(): number {

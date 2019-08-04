@@ -84,7 +84,7 @@ def list_serialize(request, query, cls, level, limit=30):
 
     if query.get('order'):
         descending = False
-        order = query['order']
+        order = query['order'][0]
         if order.startswith('-'):
             descending = True
             order = order[1:]
@@ -99,40 +99,42 @@ def list_serialize(request, query, cls, level, limit=30):
 
     # Filtering
     filters = []
-    for key, val in query.items():
+    for key, vals in query.items():
         if not key.startswith('f_'):
             continue
 
         key = key[2:]
         op = 'eq'
 
-        if '__' in key:
-            # Build query to filter on relationship, like:
-            # db.query(UrlAccess).filter(UrlAccess.url.has(Url.id == 1))
+        for val in vals:
+            if '__' in key:
+                # Build query to filter on relationship, like:
+                # db.query(UrlAccess).filter(UrlAccess.url.has(Url.id == 1))
 
-            attr, subattr = key.split('__', 1)
+                attr, subattr = key.split('__', 1)
 
-            if subattr in OPERATORS:
-                val = convert_value(cls, attr, val)
-                filters.append(op_func(subattr, getattr(cls, attr), val))
-                print('added filter %s %s %s' % (attr, subattr, val))
-                continue
+                if subattr in OPERATORS:
+                    val = convert_value(cls, attr, val)
+                    filters.append(op_func(subattr, getattr(cls, attr), val))
+                    print('added filter %s %s %s' % (attr, subattr, val))
+                    continue
 
-            op = 'eq'
-            if '__' in subattr:
-                subattr, op = subattr.rsplit('__', 1)
+                op = 'eq'
+                if '__' in subattr:
+                    subattr, op = subattr.rsplit('__', 1)
 
-            rel = getattr(cls, attr, None)
-            rel_cls = inspect(cls).relationships[attr].argument
-            rel_attr = getattr(rel_cls, subattr, None)
+                rel = getattr(cls, attr, None)
+                rel_cls = inspect(cls).relationships[attr].argument
+                rel_attr = getattr(rel_cls, subattr, None)
 
-            if rel is None or rel_attr is None:
-                continue
+                if rel is None or rel_attr is None:
+                    continue
 
-            has = rel.has(op_func(op, rel_attr, val))
-            filters.append(has)
-        elif hasattr(cls, key):
-            filters.append(op_func('eq', getattr(cls, key), val))
+                print('added filter %s->%s %s %s' % (attr, subattr, op, val))
+                has = rel.has(op_func(op, rel_attr, val))
+                filters.append(has)
+            elif hasattr(cls, key):
+                filters.append(op_func('eq', getattr(cls, key), val))
 
     print('filter %s' % filters)
     objs = request.db.query(cls).filter(*filters)
@@ -142,14 +144,14 @@ def list_serialize(request, query, cls, level, limit=30):
         objs = objs.order_by(order)
 
     if 'offset' in query:
-        offset = int(query['offset'])
+        offset = int(query['offset'][0])
         objs = objs.offset(offset)
     else:
         offset = 0
 
 
     if 'limit' in query:
-        limit = int(query['limit'])
+        limit = int(query['limit'][0])
         if limit >= 1000:
             limit = 1000
 
