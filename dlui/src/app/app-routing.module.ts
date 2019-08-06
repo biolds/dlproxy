@@ -6,6 +6,7 @@ import { HistoryComponent } from './history/history.component';
 import { ErrorComponent } from './error/error.component';
 import { MaintabsComponent } from './maintabs/maintabs.component';
 import { SettingsComponent } from './settings/settings.component';
+import { SearchComponent } from './search/search.component';
 
 declare var myAddress: string;
 
@@ -42,7 +43,8 @@ const routes: Routes = [
     children: [
       { path: 'downloads', component: DownloadsComponent },
       { path: 'settings', component: SettingsComponent },
-      { path: '', component: HistoryComponent }
+      { path: 'history', component: HistoryComponent },
+      { path: '', component: SearchComponent }
     ]
   },
   { path: '**', component: ErrorComponent, },

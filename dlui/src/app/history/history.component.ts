@@ -33,7 +33,7 @@ export class HistoryComponent implements OnInit {
     endDate: 0,
     mimeFilter: ['webpages'],
     httpStatus: ['2'],
-  })
+  });
   interval: number;
   yPos: number;
   urlsHeight: number;

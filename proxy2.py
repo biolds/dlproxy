@@ -33,6 +33,7 @@ from local.download import Download
 from local.index import load_index_content, render_index
 from local.router import router
 from local.sql import Base, Url
+from local.search_engine import SearchEngine
 
 download_html = '''
 <html>
@@ -327,12 +328,12 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             version_table = {10: 'HTTP/1.0', 11: 'HTTP/1.1'}
             setattr(res, 'headers', res.msg)
             setattr(res, 'response_version', version_table[res.version])
-            download, filename = self._is_download(netloc, path, res)
+            is_download, filename = self._is_download(netloc, path, res)
             print('download:', download)
             if inject:
                 print('inject/content-type:', res.getheader('content-type'))
 
-            if download and res.status >= 200 and res.status < 300:
+            if is_download and res.status >= 200 and res.status < 300:
                 filename = filename.replace('/', '').replace('\\', '').lstrip('.')
                 db_url = Url.get_or_create(self.db, req.path)
                 download = Download(url=db_url, filesize=res.getheader('content-length', 0), filename=filename, mimetype=res.getheader('content-type'))
@@ -433,6 +434,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
 
         print('is_download path: %s' % path)
+        if path == '/manifest.json':
+            return False, None
+
         if netloc == 'www.google.com' and path.startswith('/async/'):
             return False, None
 
@@ -592,7 +596,6 @@ if __name__ == '__main__':
     if not conf.dev:
         load_index_content(conf)
 
-
     # Clean previously running downloads
     db = DBSession()
     for download in db.query(Download).filter(Download.to_keep == False):
@@ -604,6 +607,11 @@ if __name__ == '__main__':
 
     for f in os.listdir('cache/'):
         os.unlink('cache/' + f)
+
+    # Parse search engines
+    for f in os.listdir('search/'):
+        if f.endswith('.xml'):
+            SearchEngine.parse_file(db, 'search/' + f)
 
     server_address = ('', conf.port)
     httpd = ThreadingHTTPServer(server_address, ProxyRequestHandler)

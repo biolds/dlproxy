@@ -1,0 +1,15 @@
+form {
+  text-align: center;
+}
+
+mat-form-field {
+  padding: 5px;
+}
+
+.prefix-image {
+  padding: 3px 3px 0px 3px;
+}
+
+.search-field {
+  width: 30%;
+}

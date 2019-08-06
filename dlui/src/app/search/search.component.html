@@ -1,0 +1,17 @@
+<form [formGroup]="searchForm" *ngIf="searchEngines && selectedSE">
+  <mat-form-field>
+    <mat-select matInput formControlName="searchEngine" (selectionChange)="updateSelectedSE()">
+      <mat-option *ngFor="let se of searchEngines" [value]="se.id">
+        <img *ngIf="se.icon" [src]="se.icon" height="16" width="16">
+        {{ se.short_name }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field class="search-field">
+    <img *ngIf="selectedSE.icon" matPrefix [src]="selectedSE.icon" height="16" width="16" class="prefix-image">
+    <input matInput placeholder="Search" formControlName="search" autofocus (keyup.enter)="runSearch()">
+  </mat-form-field>
+  <button mat-button title="Search" type="button" (click)="runSearch()">
+    <mat-icon>search</mat-icon>
+  </button>
+</form>

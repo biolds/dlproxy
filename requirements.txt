@@ -1,4 +1,5 @@
-sqlalchemy
+defusedxml
 psycopg2
 pyOpenSSL
 python-magic
+sqlalchemy

@@ -12,10 +12,10 @@
   <mat-icon class="search-icon">search</mat-icon>
   <mat-form-field id="search">
     <input matInput placeholder="Search" formControlName="search" (input)="refreshUrls()">
+    <a title="Clear" [routerLink]="" (click)="viewForm.patchValue({'search': ''}); refreshUrls();" matSuffix>
+      <mat-icon class="search-icon">clear</mat-icon>
+    </a>
   </mat-form-field>
-  <a title="Clear" [routerLink]="" (click)="viewForm.patchValue({'search': ''}); refreshUrls();">
-    <mat-icon class="search-icon">clear</mat-icon>
-  </a>
   <span class="right-align">
     <mat-form-field>
       <mat-select matInput formControlName="httpStatus" value="2" (selectionChange)="refreshUrls()">

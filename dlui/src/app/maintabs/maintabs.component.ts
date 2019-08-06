@@ -12,11 +12,14 @@ export class MaintabsComponent implements OnInit {
   constructor(private router: Router) {
     this.navLinks = [
         {
-            label: 'History',
+            label: 'Search',
             path: '/'
         }, {
             label: 'Downloads',
             path: '/downloads'
+        }, {
+            label: 'History',
+            path: '/history'
         }, {
             label: 'Settings',
             path: '/settings'

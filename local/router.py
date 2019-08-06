@@ -4,12 +4,13 @@ from http.server import BaseHTTPRequestHandler
 
 import urllib.parse
 
+from local.access import UrlAccess
 from local.cacert import cacert_download, cacert_generate
 from local.download import dl_download, download_delete, downloads_view, download_view, download_save, direct_download
-from local.settings import settings_view
 from local.index import render_index, UI_INDEX, UI_PATH
+from local.search_engine import SearchEngine, search_redirect
+from local.settings import settings_view
 from local.view import api_list_view
-from local.access import UrlAccess
 
 
 class Router:
@@ -18,6 +19,7 @@ class Router:
         'direct_download': direct_download,
         'dl_download': dl_download,
         'dl_open': lambda req, q, obj_id: dl_download(req, q, obj_id, attachment=False),
+        'search': search_redirect,
         'api': {
             'downloads': downloads_view,
             'download': {
@@ -29,7 +31,8 @@ class Router:
                 'generate': cacert_generate,
             },
             'settings': settings_view,
-            'urls': lambda req, q: api_list_view(UrlAccess, 1, req, q)
+            'urls': lambda req, q: api_list_view(UrlAccess, 1, req, q),
+            'search_engines': lambda req, q: api_list_view(SearchEngine, 0, req, q)
         }
     }
 
@@ -82,7 +85,7 @@ class Router:
                     with open(path, 'rb') as p:
                         request.send_content_response(p.read(), mime, mime == 'application/javascript')
         else:
-            if len(_path) and _path[-1] == '/':
+            if len(_path) and _path[-1] == '':
                 # strip trailing /
                 _path = _path[:-1]
             print('params:', _path)
