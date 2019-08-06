@@ -7,25 +7,6 @@ from local.sql import Base
 from local.settings import Settings
 
 
-#class Certificate(Base):
-#    __tablename__ = 'settings'
-#    id = Column(Integer, primary_key=True)
-#    cert = Column(String(65536), default='')
-#    domain = Column(String(4096))
-#    port = Column(Integer)
-#
-#    lock = threading.Lock()
-#
-#    @classmethod
-#    def get_or_create(cls, db, domain, port):
-#        with cls.lock:
-#            res = db.query(Certificate).filter_by(domain=domain, port=port).first()
-#            print('res fond:', res)
-#            if res:
-#                return res
-
-#            instance = Certificate(domain, port)
-
 def generate_cert(request, domain):
     print('generate for', domain)
     settings = Settings.get_or_create(request.db)
@@ -81,7 +62,3 @@ def generate_cert(request, domain):
         f.write(buf)
 
     print('saved')
-
-    #db.add(instance)
-    #db.commit()
-    #return instance

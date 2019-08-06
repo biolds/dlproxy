@@ -35,29 +35,6 @@ from local.router import router
 from local.sql import Base, Url
 from local.search_engine import SearchEngine
 
-download_html = '''
-<html>
-<head>
-  <title>{filename}</title>
-  <script src="http://code.jquery.com/jquery-3.1.0.min.js"
-          integrity="sha256-cCueBR6CsyA4/9szpPfrX3s49M9vUU5BgtiJj06wt/s="
-          crossorigin="anonymous"></script>
-</head>
-<body>
-<h1>{filename}</h1>
-<form action="https://proxy2.post" method="POST" enctype="x-www-form-urlencoded">
-    <input type="hidden" name="path" value="{path}" />
-    <input type="hidden" name="filename" value="{filename}" />
-    <input type="hidden" name="size" value="{size}" />
-    <input type="hidden" name="mimetype" value="{mimetype}" />
-    <input type="hidden" name="origin" value="{origin}" />
-    <input type="radio" name="action" value="store" checked>Store</input>
-    <input type="radio" name="action" value="download">Download</input>
-    <input type="submit" value="Submit">
-</form>
-</body>
-</html>
-'''
 
 my_hostname = socket.gethostname()
 conf = None
@@ -98,7 +75,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
     certkey = 'cert.key'
     certdir = 'certs/'
     timeout = 5
-    conf_template = Template("subjectAltName=DNS:${hostname}")
     lock = threading.Lock()
 
     def __init__(self, *args, **kwargs):
@@ -247,13 +223,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         with self.lock:
             if not os.path.isfile(certpath):
                 generate_cert(self, hostname)
-                #with open(confpath, 'w') as fp:
-                #    fp.write(self.conf_template.substitute(hostname=hostname))
-                #epoch = "%d" % (time.time() * 1000)
-                #p1 = Popen(["openssl", "req", "-new", "-key", self.certkey, "-subj", "/CN=%s" % hostname], stdout=PIPE)
-                #p2 = Popen(["openssl", "x509", "-req", "-extfile", confpath, "-days", "3650", "-CA", self.cacert, "-CAkey", self.cakey, "-set_serial", epoch, "-out", certpath], stdin=p1.stdout, stderr=PIPE)
-                #p2.communicate()
-                #print('certs built')
 
         resp = "%s %d %s\r\n" % (self.protocol_version, 200, 'Connection Established')
         resp = resp.encode('ascii')
@@ -303,10 +272,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         req = self
         content_length = int(req.headers.get('Content-Length', 0))
         req_body = self.rfile.read(content_length) if content_length else None
-
-        if req.path == 'https://proxy2.post/':
-            self.download_post(req_body)
-            return
 
         u = urllib.parse.urlsplit(req.path)
         scheme, netloc, path = u.scheme, u.netloc, (u.path + '?' + u.query if u.query else u.path)
@@ -463,8 +428,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 'application/x-www-form-urlencoded', 'application/json', 'application/x-protobuf', 'application/x-protobuffer'):
             return False, None
 
-
-
         print('headers:', res.getheaders())
         disposition = res.getheader('Content-Disposition', '')
         #if disposition.startswith('inline;'):
@@ -521,58 +484,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             buf = content[:1024]
             content = content[1024:]
             self.wfile.write(buf)
-
-    def send_download_page(self, path, filename, size, mimetype):
-        # Redirect
-        origin = self.path
-        if self.headers.get('referer', ''):
-            origin = self.headers.get('referer')
-        html = download_html.format(path=path, filename=filename, size=size, mimetype=mimetype, origin=origin)
-        html = html.encode('ascii')
-        self.send_content_response(html, 'text/html')
-
-    def download_post(self, req_body):
-        data = urllib.parse.parse_qsl(req_body.decode('ascii'))
-        data = dict(data)
-        print('data:', data)
-        data['filename'] = data['filename'].replace('/', '_')
-        data['path'] = data['path'].replace('/', '_')
-        if data['action'] == 'store':
-            os.rename('cache/' + data['path'], 'downloads/' + data['filename'])
-            self.send_response(302)
-            self.send_header('Location', data['origin'])
-            self.end_headers()
-            return
-        elif data['action'] != 'download':
-            raise Exception('bad action')
-
-        f = open('cache/' + data['path'], 'rb')
-        os.unlink('cache/' + data['path'])
-
-        response = "%s %d %s\r\n" % (self.protocol_version, 200, 'OK')
-        response = response.encode('ascii')
-        self.wfile.write(response)
-        self.send_header('Content-Type', data['mimetype'])
-        self.send_header('Content-Length', data['size'])
-        self.send_header('Content-Disposition', 'attachment; filename="%s"' % data['filename'])
-        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
-        self.send_header('Pragma', 'no-cache')
-        self.send_header('Expires', '0')
-        self.send_header('Connection', 'close')
-        self.end_headers()
-
-        size = int(data['size'])
-        while size:
-            n = 1024 if size > 1024 else size
-            buf = f.read(n)
-            if buf == 0:
-                sleep(1)
-                continue
-
-            self.wfile.write(buf)
-            size -= len(buf)
-        self.wfile.flush()
-        f.close()
 
 
 if __name__ == '__main__':
