@@ -50,12 +50,12 @@ export class DownloadComponent implements OnInit {
     }
 
     if (eta < 24 * 60) {
-        return Math.trunc(eta / 60) + ':' + Math.round(eta % 60);
+      return Math.trunc(eta / 60) + ':' + Math.round(eta % 60);
     }
 
     eta /= 24 * 60;
     eta = Math.round(eta);
-    return `${eta} day` + (eta >= 2) ? 's' : '';
+    return `${eta} day` + ((eta >= 2) ? 's' : '');
   }
 
   loadData(download: Download): void {
