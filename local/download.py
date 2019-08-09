@@ -218,10 +218,13 @@ def dl_download(request, query, obj_id, attachment=True):
     done = 0
     i = 0
     while done < size:
+        print('size: %s' % size)
         remaining = size - done
         n = 1024 if remaining > 1024 else remaining
 
         buf = f.read(n)
+        print('read %s / %s' % (n, len(buf)))
+
         if len(buf) == 0:
             i += 1
 
@@ -230,6 +233,7 @@ def dl_download(request, query, obj_id, attachment=True):
                 self.db.flush()
                 download = self.db.query(Download).get(obj_id)
                 if download is None:
+                    print('download is None')
                     break
 
                 # refresh size that may have changed (after download finished)

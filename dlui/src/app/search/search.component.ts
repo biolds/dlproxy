@@ -71,6 +71,7 @@ export class SearchComponent implements OnInit {
       
       this.selectedSE = this.searchEngines[0];
       let seId = searchEngines.objs[0].id;
+
       this.searchForm.patchValue({ searchEngine: seId });
     });
   }

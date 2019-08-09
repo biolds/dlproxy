@@ -123,7 +123,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             my_addr = my_addr[len('http://'):]
 
             print('path %s / %s' % (self.path, my_addr))
-            if self.path.startswith(my_address()) or self.path == my_addr:
+            print('websocket %s' % self.headers.get('Upgrade'))
+            # Relay CONNECT's to the web ui when dev is enabled
+            if (self.path.startswith(my_address()) or self.path == my_addr) and (self.command != 'CONNECT' or not conf.dev):
                 global conf
                 router.handle(self, conf)
             else:
@@ -156,6 +158,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         res = None
         try:
             res = method(*args)
+            self.wfile.flush()
         finally:
             if self.command != 'CONNECT' and not inject:
                 mime = None
@@ -209,10 +212,24 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             self.log_message(exc.replace('%', '%%'))
 
     def do_CONNECT(self):
-        if os.path.isfile(self.cakey) and os.path.isfile(self.cacert) and os.path.isfile(self.certkey) and os.path.isdir(self.certdir):
-            self.connect_intercept()
-        else:
+        address = self.path.split(':', 1)
+        address[1] = int(address[1]) or 443
+
+        my_addr = my_address().rstrip('/')
+        my_addr = my_addr[len('http://'):]
+
+        # Relay websocket in dev mode
+        relay = (conf.dev is True and (self.path.startswith(my_address()) or self.path == my_addr))
+
+        # Relay websocket on http
+        relay |= address[1] == 80
+        print('relaying: %s' % relay)
+
+        #if os.path.isfile(self.cakey) and os.path.isfile(self.cacert) and os.path.isfile(self.certkey) and os.path.isdir(self.certdir):
+        if relay:
             self.connect_relay()
+        else:
+            self.connect_intercept()
 
     def connect_intercept(self):
         hostname = self.path.split(':')[0]
@@ -241,30 +258,69 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             self.close_connection = 0
 
     def connect_relay(self):
-        print('rely')
         address = self.path.split(':', 1)
         address[1] = int(address[1]) or 443
+        timeout = self.timeout
+
+        my_addr = my_address().rstrip('/')
+        my_addr = my_addr[len('http://'):]
+        relay_self = (conf.dev is True and (self.path.startswith(my_address()) or self.path == my_addr))
+
+        if relay_self:
+            is_websocket = True
+            address = ('127.0.0.1', 4200)
+
         try:
             s = socket.create_connection(address, timeout=self.timeout)
         except Exception as e:
+            raise
             self.send_error(502)
             return
-        self.send_response(200, 'Connection Established')
-        self.end_headers()
 
+        #self.send_response(200, 'Connection Established')
+        #self.end_headers()
+        resp = "%s %d %s\r\n" % (self.protocol_version, 200, 'Connection Established')
+        resp = resp.encode('ascii')
+        self.wfile.write(resp + b'\r\n')
+
+        self._relay(s)
+
+    def _relay(self, s, is_websocket=False):
+        is_websocket = is_websocket
         conns = [self.connection, s]
         self.close_connection = 0
+        print('CONNECTed')
+
+        check_websocket = True
         while not self.close_connection:
-            rlist, wlist, xlist = select.select(conns, [], conns, self.timeout)
+            timeout = self.timeout
+            if is_websocket:
+                # Firefox network.http.keep-alive.timeout
+                timeout = 115
+            rlist, wlist, xlist = select.select(conns, [], conns, timeout)
             if xlist or not rlist:
+                print('xlist %s rlist %s' % (xlist, rlist))
                 break
+
             for r in rlist:
                 other = conns[1] if r is conns[0] else conns[0]
                 data = r.recv(8192)
                 if not data:
+                    print('relay no data')
                     self.close_connection = 1
                     break
+                print('%s -> %s : %s' % (r, other, data))
+
+                if check_websocket:
+                    check_websocket = False
+                    if data[:4] == b'GET ':
+                        print('found websocket')
+                        is_websocket = True
+                    else:
+                        print('found non websocket')
+
                 other.sendall(data)
+        print('CONNECT to %s closed' % self.path)
 
     def do_GET(self, inject=False):
         download = False
@@ -278,7 +334,14 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         assert scheme in ('http', 'https')
         if netloc:
             req.headers['Host'] = netloc
-        req_headers = self.filter_headers(req.headers.items())
+
+        if req.headers.get('Upgrade') != 'websocket':
+            req_headers = self.filter_headers(req.headers.items())
+        else:
+            req_headers = req.headers
+            for header in req_headers.keys():
+                if header.lower() in ('proxy-authenticate', 'proxy-authorization'):
+                    req_headers.pop(header)
 
         try:
             origin = (scheme, netloc)
@@ -287,6 +350,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                     self.tls.conns[origin] = http.client.HTTPSConnection(netloc, timeout=self.timeout)
                 else:
                     self.tls.conns[origin] = http.client.HTTPConnection(netloc, timeout=self.timeout)
+                print('new origi %s' % netloc)
             conn = self.tls.conns[origin]
             conn.request(self.command, path, req_body, dict(req_headers))
             res = conn.getresponse()
@@ -295,11 +359,14 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             setattr(res, 'response_version', version_table[res.version])
             is_download, filename = self._is_download(netloc, path, res)
             print('download:', download)
+            print('status %s' % res.status)
             if inject:
                 print('inject/content-type:', res.getheader('content-type'))
 
             if is_download and res.status >= 200 and res.status < 300:
-                filename = filename.replace('/', '').replace('\\', '').lstrip('.')
+                if '/' in filename:
+                    _, filename = filename.rsplit('/', 1)
+                filename = filename.replace('\\', '').lstrip('.')
                 db_url = Url.get_or_create(self.db, req.path)
                 download = Download(url=db_url, filesize=res.getheader('content-length', 0), filename=filename, mimetype=res.getheader('content-type'))
                 self.db.add(download)
@@ -317,12 +384,27 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             else:
                 response = "%s %d %s\r\n" % (self.protocol_version, res.status, res.reason)
                 self.wfile.write(response.encode('ascii'))
-                res_headers = self.filter_headers(res.getheaders())
+
+                if res.headers.get('Upgrade') != 'websocket':
+                    res_headers = self.filter_headers(res.getheaders())
+                else:
+                    res_headers = res.headers
+                    for header in res_headers.keys():
+                        if header.lower() in ('proxy-authenticate', 'proxy-authorization'):
+                            res_headers.pop(header)
+                    res_headers = res_headers.items()
+
                 for key, val in res_headers:
                     header = '%s: %s\r\n' % (key, val)
                     self.wfile.write(header.encode('ascii'))
                 self.wfile.write(b'\r\n')
                 fd = self.wfile
+
+            if self.headers.get('Upgrade') == 'websocket':
+                if res.status != 101:
+                    print('error: %s' % res.read())
+                print('got wwebsocket')
+                return self._relay(conn.sock, True)
 
             i = 0
             while True:
@@ -361,7 +443,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 filesize = download.filesize
                 download.update_from_file(self.db)
 
-                if filesize != download.filesize:
+                if filesize != download.filesize and download.filesize != 0:
                     download.error = 'Connection closed'
 
                 self.db.add(download)
@@ -452,7 +534,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             return False, None
 
         u = urllib.parse.urlsplit(self.path)
-        return True, os.path.basename(u.path)
+        url = urllib.parse.unquote_plus(u.path)
+        return True, os.path.basename(url)
 
     do_HEAD = do_GET
     do_POST = do_GET
