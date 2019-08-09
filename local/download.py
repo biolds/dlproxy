@@ -1,6 +1,7 @@
 from http.server import HTTPStatus
 import json
 import os
+from time import sleep
 
 import magic
 from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, String, func
@@ -213,10 +214,13 @@ def dl_download(request, query, obj_id, attachment=True):
     request.send_header('Connection', 'close')
     request.end_headers()
 
-    size = int(filesize)
+    size = filesize
+    done = 0
     i = 0
-    while size:
-        n = 1024 if size > 1024 else size
+    while done < size:
+        remaining = size - done
+        n = 1024 if remaining > 1024 else remaining
+
         buf = f.read(n)
         if len(buf) == 0:
             i += 1
@@ -227,6 +231,8 @@ def dl_download(request, query, obj_id, attachment=True):
                 download = self.db.query(Download).get(obj_id)
                 if download is None:
                     break
+
+                # refresh size that may have changed (after download finished)
                 size = download.filesize
 
             sleep(1)
@@ -235,6 +241,6 @@ def dl_download(request, query, obj_id, attachment=True):
             i = 0
 
         request.wfile.write(buf)
-        size -= len(buf)
+        done += len(buf)
     request.wfile.flush()
     f.close()
