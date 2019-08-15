@@ -1,4 +1,5 @@
-from urllib.parse import quote_plus
+import re
+import urllib.parse
 
 from defusedxml import ElementTree
 from sqlalchemy import Column, Integer, String
@@ -6,7 +7,7 @@ from sqlalchemy.orm import relationship
 
 from local.sql import Base, Url
 
- 
+
 SHORTCUTS = {
     'DuckDuckGo': '',
     'GitHub': 'gh'
@@ -52,7 +53,7 @@ class SearchEngine(Base):
                 se.html_template = elem.get('template')
             elif elem.get('type') == 'application/x-suggestions+json':
                 se.suggestion_template = elem.get('template')
-            
+
         for elem in root.findall(ns + 'Image'):
             if elem.get('height') != '16' or elem.get('width') != '16':
                 continue
@@ -71,12 +72,86 @@ class SearchEngine(Base):
 
         cls.parse_odf(db, buf)
 
+    @classmethod
+    def _get_search_terms(cls, se, url, in_url):
+        print('term matching %s vs %s' % (se, url))
+        terms_re = re.escape(se)
+
+        if in_url:
+            replace_by = '([^/]*)'
+        else:
+            replace_by = '.*'
+        terms_re = terms_re.replace('\\{searchTerms\\}', replace_by)
+
+        print('check re %s / %s' % (terms_re, url))
+        m = re.search(terms_re, url)
+
+        if m is None:
+            return None
+
+        return m.group(0)
+
+    @classmethod
+    def get_from_url(cls, db, url):
+        if url is None:
+            return
+        parsed_url = urllib.parse.urlsplit(url)
+        url_params = urllib.parse.parse_qs(parsed_url.query)
+
+        print('checking url %s for searhc' %url)
+        for se in db.query(SearchEngine).all():
+            print('against %s' % se.html_template)
+            se_url = urllib.parse.urlsplit(se.html_template)
+
+            if se_url.scheme != parsed_url.scheme or se_url.netloc != parsed_url.netloc:
+                print('scheme or netloc not matching for %s' % se.html_template)
+                continue
+
+            # Match the url
+            if '{searchTerms}' in se_url.path:
+                path = urllib.parse.unquote_plus(url)
+                terms = cls._get_search_terms(se_url.path, path, True)
+
+                if terms is None:
+                    print('search term in url not matched (se %s)' % se.html_template)
+                    continue
+                print('found search %s on %s' % (terms, se.html_template))
+                return se, terms
+            else:
+                if se_url.path != parsed_url.path:
+                    print('se %s path did not match' % se.html_template)
+                    continue
+
+            # Path matched, find search term in params
+            se_params = urllib.parse.parse_qs(se_url.query)
+            terms = None
+            for key, val in se_params.items():
+                val = val[0]
+                if '{searchTerms}' in val:
+                    if key not in url_params:
+                        print('param %s for se %s missing' % (key, se.html_template))
+                        break
+                    terms = cls._get_search_terms(val, url_params[key][0], False)
+
+                    if terms is None:
+                        print('no param %s match for se %s' % (key, se.html_template))
+                        break
+                else:
+                    if url_params.get(key) != val:
+                        print('non matching param %s = %s for se %s (%s = %s)' % (key, url_params.get(key), se.html_template, key, val))
+                        break
+            else:
+                print('matching se %s, search terms: %s' % (se.html_template, terms))
+                return se, terms
+
+            print('no se match')
+            return None
 
 def search_redirect(request, query, search_id):
     search = query.get('q', [''])[0]
     search_engine = request.db.query(SearchEngine).get(search_id)
 
-    location = search_engine.html_template.replace('{searchTerms}', quote_plus(search))
+    location = search_engine.html_template.replace('{searchTerms}', urllib.parse.quote_plus(search))
     request.send_response(302)
     request.send_header('Location', location)
     request.end_headers()

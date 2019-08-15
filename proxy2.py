@@ -33,6 +33,7 @@ from local.download import Download
 from local.index import load_index_content, render_index
 from local.router import router
 from local.sql import Base, Url
+from local.searchs import SearchTerms, SearchResult
 from local.search_engine import SearchEngine
 
 
@@ -124,9 +125,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             print('path %s / %s' % (self.path, my_addr))
             print('websocket %s' % self.headers.get('Upgrade'))
+            global conf
             # Relay CONNECT's to the web ui when dev is enabled
             if (self.path.startswith(my_address()) or self.path == my_addr) and (self.command != 'CONNECT' or not conf.dev):
-                global conf
                 router.handle(self, conf)
             else:
                 self.proxy_request()
@@ -169,7 +170,22 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                         mime = mime.split(';', 1)[0]
                     status = res.status
 
-                UrlAccess.log(self.db, self.path, mime, self.headers['Referer'], status)
+                UrlAccess.log(self.db, self.path, mime, self.headers.get('Referer'), status)
+
+                log_search = mime == 'text/html' and self.command == 'GET'
+                log_search = log_search and status >= 200 and status < 400
+                log_search = log_search and not self.headers.get('X-Requested-With')
+                if log_search:
+                    search_match = SearchEngine.get_from_url(self.db, self.headers.get('referer'))
+
+                    if search_match is not None:
+                        se, terms = search_match
+                        terms = SearchTerms.get_or_create(self.db, terms)
+                        referer = Url.get_or_create(self.db, self.headers.get('Referer'))
+                        url = Url.get_or_create(self.db, self.path, mime)
+                        search = SearchResult(search_terms=terms, search_engine=se, url=url)
+                        self.db.add(search)
+                        self.db.commit()
 
     def render_index(self, status, *args, **kwargs):
         response = "%s %d %s\r\n" % (self.protocol_version, status.value, status.name)
@@ -219,6 +235,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         my_addr = my_addr[len('http://'):]
 
         # Relay websocket in dev mode
+        global conf
         relay = (conf.dev is True and (self.path.startswith(my_address()) or self.path == my_addr))
 
         # Relay websocket on http
@@ -264,6 +281,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
         my_addr = my_address().rstrip('/')
         my_addr = my_addr[len('http://'):]
+        global conf
         relay_self = (conf.dev is True and (self.path.startswith(my_address()) or self.path == my_addr))
 
         if relay_self:
@@ -363,6 +381,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             if inject:
                 print('inject/content-type:', res.getheader('content-type'))
 
+            global conf
             if is_download and res.status >= 200 and res.status < 300:
                 if '/' in filename:
                     _, filename = filename.rsplit('/', 1)
@@ -467,6 +486,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         return res
 
     def _is_download(self, netloc, path, res):
+        if self.headers.get('X-Requested-With')
+            return False, None
+
         if ':' in netloc:
             netloc = netloc.split(':', 1)[0]
 
