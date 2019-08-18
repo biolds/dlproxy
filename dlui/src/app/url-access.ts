@@ -13,6 +13,7 @@ export class UrlAccess {
   status: number;
 
   paths: FilteredPath[];
+  titles: FilteredPath[];
 }
 
 export const URL_HEIGHT = 50;

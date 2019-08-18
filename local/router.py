@@ -4,7 +4,7 @@ from http.server import BaseHTTPRequestHandler
 
 import urllib.parse
 
-from local.access import UrlAccess
+from local.access import UrlAccess, url_accesses
 from local.cacert import cacert_download, cacert_generate
 from local.download import dl_download, download_delete, downloads_view, download_view, download_save, direct_download
 from local.index import render_index, UI_INDEX, UI_PATH
@@ -32,7 +32,7 @@ class Router:
                 'generate': cacert_generate,
             },
             'settings': settings_view,
-            'urls': lambda req, q: api_list_view(UrlAccess, 1, req, q),
+            'urls': url_accesses,
             'search_engines': lambda req, q: api_list_view(SearchEngine, 0, req, q),
             'search_results': lambda req, q: api_list_view(SearchResult, 1, req, q),
             'last_searches': last_searches

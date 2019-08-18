@@ -21,3 +21,8 @@ mat-accordion {
 mat-panel-title {
   flex-grow: unset;
 }
+
+.result-url {
+  padding-top: 9px;
+  padding-left: 10px;
+}

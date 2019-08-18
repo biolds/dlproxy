@@ -32,7 +32,7 @@ export class DownloadService {
       .pipe(
         catchError(this.handleError<Download>('getDownload', {
           id: 0,
-          url: {id: 0, url: ''},
+          url: {id: 0, url: '', title: ''},
           date: 0,
           filesize: 0,
           filename: '',

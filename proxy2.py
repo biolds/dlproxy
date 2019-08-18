@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import argparse
+import brotli
 import sys
 import os
 import socket
@@ -8,7 +9,6 @@ import select
 import http.client
 import urllib.parse
 import threading
-import gzip
 import zlib
 import time
 import json
@@ -17,6 +17,7 @@ import cgi
 from datetime import datetime
 from traceback import format_exception
 from ipaddress import ip_address
+from html import unescape
 from http.server import HTTPServer, BaseHTTPRequestHandler, HTTPStatus
 from socketserver import ThreadingMixIn
 from io import StringIO, BytesIO
@@ -42,7 +43,7 @@ conf = None
 
 engine = create_engine('postgresql+psycopg2://dlproxy:dlproxy@localhost:5432/dlproxy',
             max_overflow=-1 # allow unlimited connections since, threads count is not limited
-            ) #, echo=True)
+            , echo=True)
 session_factory = sessionmaker(bind=engine)
 DBSession = scoped_session(session_factory)
 
@@ -164,17 +165,23 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             if self.command != 'CONNECT' and not inject:
                 mime = None
                 status = 404
+                is_ajax = bool(self.headers.get('X-Requested-With')) or self.path.endswith('.woff2')
+                title = None
+
                 if res:
                     mime = res.getheader('content-type', 'application/octet-stream')
                     if ';' in mime:
                         mime = mime.split(';', 1)[0]
                     status = res.status
 
-                UrlAccess.log(self.db, self.path, mime, self.headers.get('Referer'), status)
+                    if hasattr(res, 'title'):
+                        title = res.title
+
+                UrlAccess.log(self.db, self.path, title, mime, self.headers.get('Referer'), is_ajax, status)
 
                 log_search = mime == 'text/html' and self.command == 'GET'
                 log_search = log_search and (status == 200 or (status >= 300 and status < 400))
-                log_search = log_search and not self.headers.get('X-Requested-With')
+                log_search = log_search and not is_ajax
 
                 if log_search:
                     # Create search entry
@@ -192,10 +199,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                     if search_match is not None:
                         se, terms = search_match
                         referer = Url.get_or_create(self.db, self.headers.get('Referer'))
-                        url = Url.get_or_create(self.db, self.path, mime)
+                        url = Url.get_or_create(self.db, self.path)
                         search = Search.get_or_create(self.db, terms, se)
                         self.db.add(search)
-                        search_res = SearchResult(search=search, url=url)
+                        search_res = SearchResult.get_or_create(self.db, search=search, url=url)
                         self.db.add(search_res)
                         self.db.commit()
 
@@ -438,11 +445,62 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 return self._relay(conn.sock, True)
 
             i = 0
+            has_title = ((res.getheader('content-type') == 'text/html' or res.getheader('content-type',  '').startswith('text/html;'))
+                and not self.headers.get('X-Requested-With') and res.status >= 200 and res.status < 300)
+
+            if has_title:
+                content = b''
+                content_lower = b''
+                print('has_title %s %s' % (has_title, res.getheader('content-encoding', '')))
+
+                gzip_obj = None
+                if res.getheader('content-encoding') == 'gzip':
+                    gzip_obj = zlib.decompressobj(zlib.MAX_WBITS + 16)
+                elif res.getheader('content-encoding') == 'br':
+                    gzip_obj = brotli.Decompressor()
+
             while True:
                 res_body = res.read(1024)
                 if len(res_body) == 0:
                     break
                 fd.write(res_body)
+
+                if has_title and len(content) < 50 * 1024:
+                    if gzip_obj:
+                        data = gzip_obj.decompress(res_body)
+                    else:
+                        data = res_body
+
+                    if content == b'':
+                        print(b'content:\n%s' % data)
+
+                    content += data
+                    content_lower += data.lower()
+
+                    start = content_lower.find(b'<html>')
+                    if start == -1:
+                        start = content_lower.find(b'<html ')
+                    if start == -1:
+                        start = content_lower.find(b'<html\n')
+                    print('HTML tag: %s' % start)
+
+
+                    if start != -1:
+                        print('HTML found')
+                        for tag in (b'head', b'title'):
+                            tag_start = content_lower.find(b'<%s>' % tag, start)
+                            if tag_start == -1:
+                                break
+                            print('%s found' % tag.upper().decode('ascii'))
+                            start = tag_start
+                        else:
+                            end = content_lower.find(b'</title>', start)
+
+                            if end != -1:
+                                title = content[start + len(b'<title>'):end].decode('utf-8')
+                                res.title = unescape(title)
+                                print('found title: %s' % res.title)
+                                has_title = False
 
                 if i % 16 == 0 and download:
                     try:
@@ -541,7 +599,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             if content_type.startswith(mime):
                 return False, None
         if content_type in ('text/javascript', 'application/javascript', 'application/x-javascript',
-                'application/x-www-form-urlencoded', 'application/json', 'application/x-protobuf', 'application/x-protobuffer'):
+                'application/x-www-form-urlencoded', 'application/json', 'application/x-protobuf', 'application/x-protobuffer',
+                'application/x-chrome-extension'):
             return False, None
 
         print('headers:', res.getheaders())

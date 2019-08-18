@@ -32,10 +32,13 @@
       <a [routerLink]="" (click)="openSearch(s)">Search on {{ s.search_engine.long_name }}</a>
       <mat-list *ngIf="s.results">
         <mat-list-item *ngFor="let url of s.results">
-          <a target="_blank" rel="noopener noreferrer" [href]="url.url">
-            <mat-icon>open_in_new</mat-icon>
-            {{ url.url }}
-          </a>
+          <span>
+            <a target="_blank" rel="noopener noreferrer" [href]="url.url">
+              <mat-icon>open_in_new</mat-icon>
+              {{ url.title ? url.title : url.url }}
+            </a>
+          </span>
+          <span *ngIf="url.title" class="result-url">{{ url.url }}</span>
         </mat-list-item>
       </mat-list>
     </mat-expansion-panel>

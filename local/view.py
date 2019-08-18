@@ -2,7 +2,7 @@ from datetime import datetime
 import enum
 import json
 
-from sqlalchemy import desc, DateTime, Integer
+from sqlalchemy import desc, Boolean, DateTime, Integer
 from sqlalchemy.inspection import inspect
 
 
@@ -42,6 +42,14 @@ def api_detail_view(cls, level, request, query, obj_id):
 OPERATORS = ('eq', 'gt', 'gte', 'lt', 'lte', 'ilike')
 
 
+def ilike_escape(val):
+    val = val.replace('\\', '\\\\')
+    val = val.replace('%', '\\%')
+    val = val.replace('_', '\\_')
+    val = '%' + val + '%'
+    return val
+
+
 def op_func(op, a, b):
     OP = {
         'eq': '=',
@@ -56,10 +64,7 @@ def op_func(op, a, b):
     op = OP[op]
 
     if op == 'ilike':
-        b = b.replace('\\', '\\\\')
-        b = b.replace('%', '\\%')
-        b = b.replace('_', '\\_')
-        b = '%' + b + '%'
+        b = ilike_escape(b)
 
     return a.op(op)(b)
 
@@ -71,10 +76,12 @@ def convert_value(cls, attr, val):
         return datetime.fromtimestamp(int(val))
     elif isinstance(col_type, Integer):
         return int(val)
+    elif isinstance(col_type, Boolean):
+        return val == 'true'
     return val
 
 
-def list_serialize(request, query, cls, level, limit=30):
+def list_serialize(request, query, cls, level, limit=30, filters=None):
     # Ordering
     order = 'id'
     descending = True
@@ -98,7 +105,9 @@ def list_serialize(request, query, cls, level, limit=30):
         order = None
 
     # Filtering
-    filters = []
+    if filters is None:
+        filters = []
+    print('query: %s' % query.items())
     for key, vals in query.items():
         if not key.startswith('f_'):
             continue
@@ -131,12 +140,17 @@ def list_serialize(request, query, cls, level, limit=30):
                     continue
 
                 print('added filter %s->%s %s %s' % (attr, subattr, op, val))
+                val = convert_value(rel_cls, subattr, val)
+
                 has = rel.has(op_func(op, rel_attr, val))
                 filters.append(has)
             elif hasattr(cls, key):
+                val = convert_value(cls, key, val)
                 filters.append(op_func('eq', getattr(cls, key), val))
+                print('added filter %s %s %s' % (key, op, val))
+            else:
+                print('%s has no attr %s' % (cls, key))
 
-    print('filter %s' % filters)
     objs = request.db.query(cls).filter(*filters)
     count = objs.count()
 
@@ -148,7 +162,6 @@ def list_serialize(request, query, cls, level, limit=30):
         objs = objs.offset(offset)
     else:
         offset = 0
-
 
     if 'limit' in query:
         limit = int(query['limit'][0])

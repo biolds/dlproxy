@@ -64,22 +64,25 @@ export class HistoryComponent implements OnInit {
     let filter = `f_date__gte=${startDate}&f_date__lt=${endDate}`;
 
     if (this.viewForm.value.mimeFilter === 'webpages') {
-      filter += '&f_url__mimetype=text/html';
+      filter += '&f_url__mimetype=text/html&f_url__is_ajax=false';
     }
 
-    const searchTerms = this.viewForm.value.search.split(' ').filter(s => s !== '').map(s => s.toLowerCase());
-    if (searchTerms.length !== '') {
-      const urls = searchTerms.map(u => `&f_url__url__ilike=${u}`);
-      filter += urls.join('');
+    if (this.viewForm.value.search) {
+      filter += `&q=${this.viewForm.value.search}`;
     }
 
     if (this.viewForm.value.httpStatus !== 'all') {
       let s = this.viewForm.value.httpStatus;
       s = parseInt(s, 10);
       console.log('status:', s);
-      filter += `&f_status__gte=${s}00&f_status__lt=${s + 1}00`;
+      if (this.viewForm.value.mimeFilter === 'webpages') {
+        filter += `&f_status=200`;
+      } else {
+        filter += `&f_status__gte=${s}00&f_status__lt=${s + 1}00`;
+      }
     }
 
+    const searchTerms = this.viewForm.value.search.split(' ').filter(s => s !== '').map(s => s.toLowerCase());
     this.urlService.getUrlAccesses(urlMin, urlMax - urlMin, filter).subscribe((urls) => {
       this.urls = urls;
       this.urlsHeight = this.urls.count * URL_HEIGHT;
@@ -93,9 +96,16 @@ export class HistoryComponent implements OnInit {
 
         this.urls.objs = this.urls.objs.map(u => {
           let paths = u.url.url.split(regexp);
+          let titles = u.url.title ? u.url.title.split(regexp) : [];
           return {
             ...u,
             paths: paths.map(p => {
+              return {
+                path: p,
+                matching: searchTerms.indexOf(p.toLowerCase()) !== -1
+              } as FilteredPath;
+            }),
+            titles: titles.map(p => {
               return {
                 path: p,
                 matching: searchTerms.indexOf(p.toLowerCase()) !== -1
@@ -110,9 +120,14 @@ export class HistoryComponent implements OnInit {
             path: u.url.url,
             matching: false
           } as FilteredPath;
+          let filteredTitle = {
+            path: u.url.title,
+            matching: false
+          } as FilteredPath;
           return {
             ...u,
-            paths: [filteredPath]
+            paths: [filteredPath],
+            titles: [filteredTitle]
           };
         });
       }

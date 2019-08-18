@@ -16,4 +16,10 @@
       <span *ngIf="!path.matching">{{ path.path }}</span>
     </span>
   </div>
+  <div class="url">
+    <span *ngFor="let path of url.titles">
+      <span class="hilight" *ngIf="path.matching">{{ path.path }}</span>
+      <span *ngIf="!path.matching">{{ path.path }}</span>
+    </span>
+  </div>
 </mat-list-item>

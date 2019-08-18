@@ -1,3 +1,4 @@
+brotlipy
 defusedxml
 psycopg2
 pyOpenSSL

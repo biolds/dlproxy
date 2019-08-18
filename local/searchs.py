@@ -20,11 +20,18 @@ class Search(Base):
 
     @classmethod
     def get_or_create(cls, db, query, search_engine):
+        # Take last same query within last 10 mins
         instance = db.query(Search).filter(
             Search.query == query,
             Search.search_engine == search_engine,
             Search.date >= datetime.now() - timedelta(minutes=10),
         ).first()
+
+        if not instance:
+            # Take last query if its the same
+            instance = db.query(Search).order_by(desc(Search.date)).first()
+            if instance and (instance.query != query or instance.search_engine != search_engine):
+                instance = None
 
         if not instance:
             instance = Search(query=query, search_engine=search_engine)
@@ -40,6 +47,16 @@ class SearchResult(Base):
     url = relationship(Url)
     search_id = Column(Integer, ForeignKey('search.id'))
     search = relationship(Search)
+
+    @classmethod
+    def get_or_create(cls, db, search, url):
+        instance = db.query(SearchResult).filter_by(search=search, url=url).first()
+
+        if not instance:
+            instance = SearchResult(search=search, url=url)
+            db.add(instance)
+
+        return instance
 
 
 def last_searches(request, query):
