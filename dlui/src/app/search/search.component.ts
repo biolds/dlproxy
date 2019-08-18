@@ -3,6 +3,8 @@ import { FormBuilder } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 
+import { ObjList } from '../objlist';
+import { Search } from '../search';
 import { SearchEngineService } from '../search-engine.service';
 import { SearchEngine } from '../search-engine';
 
@@ -41,6 +43,7 @@ export class SearchComponent implements OnInit {
   searchEngines: SearchEngine[];
   selectedSE: SearchEngine;
   searchUrl: string;
+  lastSearches: ObjList<Search>;
 
   constructor(
     private fb: FormBuilder,
@@ -59,6 +62,11 @@ export class SearchComponent implements OnInit {
     window.location.href = path + '?q=' + this.searchForm.value.search;
   }
 
+  openSearch(search: Search) {
+    let path = '/search/' + search.search_engine.id;
+    window.location.href = path + '?q=' + search.query;
+  }
+
   ngOnInit() {
     this.searchEngineService.searchEngineList().subscribe((searchEngines) => {
       this.searchEngines = searchEngines.objs.map(se => {
@@ -73,6 +81,18 @@ export class SearchComponent implements OnInit {
       let seId = searchEngines.objs[0].id;
 
       this.searchForm.patchValue({ searchEngine: seId });
+    });
+    this.searchEngineService.lastSearches().subscribe((lastSearches) => {
+      this.lastSearches = lastSearches;
+      this.lastSearches.objs = lastSearches.objs.map(search => {
+        let d = new Date(0);
+        d.setUTCSeconds(search.date);
+        const s = {
+            ...search,
+            date_str: d.toLocaleString()
+        } as Search;
+        return s;
+      });
     });
   }
 }

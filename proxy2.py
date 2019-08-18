@@ -33,7 +33,7 @@ from local.download import Download
 from local.index import load_index_content, render_index
 from local.router import router
 from local.sql import Base, Url
-from local.searchs import SearchTerms, SearchResult
+from local.searchs import Search, SearchResult
 from local.search_engine import SearchEngine
 
 
@@ -173,18 +173,30 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 UrlAccess.log(self.db, self.path, mime, self.headers.get('Referer'), status)
 
                 log_search = mime == 'text/html' and self.command == 'GET'
-                log_search = log_search and status >= 200 and status < 400
+                log_search = log_search and (status == 200 or (status >= 300 and status < 400))
                 log_search = log_search and not self.headers.get('X-Requested-With')
+
                 if log_search:
+                    # Create search entry
+                    search_match = SearchEngine.get_from_url(self.db, self.path)
+
+                    if search_match is not None:
+                        se, terms = search_match
+                        search = Search.get_or_create(self.db, terms, se)
+                        self.db.add(search)
+                        self.db.commit()
+
+                    # Create search result entry
                     search_match = SearchEngine.get_from_url(self.db, self.headers.get('referer'))
 
                     if search_match is not None:
                         se, terms = search_match
-                        terms = SearchTerms.get_or_create(self.db, terms)
                         referer = Url.get_or_create(self.db, self.headers.get('Referer'))
                         url = Url.get_or_create(self.db, self.path, mime)
-                        search = SearchResult(search_terms=terms, search_engine=se, url=url)
+                        search = Search.get_or_create(self.db, terms, se)
                         self.db.add(search)
+                        search_res = SearchResult(search=search, url=url)
+                        self.db.add(search_res)
                         self.db.commit()
 
     def render_index(self, status, *args, **kwargs):
@@ -486,7 +498,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         return res
 
     def _is_download(self, netloc, path, res):
-        if self.headers.get('X-Requested-With')
+        if self.headers.get('X-Requested-With'):
             return False, None
 
         if ':' in netloc:

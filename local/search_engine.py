@@ -147,11 +147,39 @@ class SearchEngine(Base):
             print('no se match')
             return None
 
+    def get_search_url(self, query):
+        se_url = urllib.parse.urlsplit(self.html_template)
+
+        if '{searchTerms}' in se_url.path:
+            query = urllib.parse.quote_plus(query)
+            se_url_path = se_url.path.replace('{searchTerms}', query)
+            se_url = se_url._replace(path=se_url_path)
+            return urllib.parse.urlunsplit(se_url)
+
+        se_params = urllib.parse.parse_qs(se_url.query)
+        for key, val in se_params.items():
+            val = val[0]
+            if '{searchTerms}' in val:
+                se_params[key] = val.replace('{searchTerms}', query)
+                break
+        else:
+            raise Exception('could not find {searchTerms} parameter')
+
+        se_url_query = urllib.parse.urlencode(se_params)
+        se_url = se_url._replace(query=se_url_query)
+        return urllib.parse.urlunsplit(se_url)
+
+
 def search_redirect(request, query, search_id):
     search = query.get('q', [''])[0]
     search_engine = request.db.query(SearchEngine).get(search_id)
 
-    location = search_engine.html_template.replace('{searchTerms}', urllib.parse.quote_plus(search))
+    location = search_engine.get_search_url(search)
     request.send_response(302)
     request.send_header('Location', location)
     request.end_headers()
+
+    from local.searchs import Search
+    s = Search.get_or_create(request.db, search, search_engine)
+    request.db.add(s)
+    request.db.commit()
