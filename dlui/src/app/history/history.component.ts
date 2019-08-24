@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, Input, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder } from '@angular/forms';
 import { MAT_MOMENT_DATE_FORMATS, MomentDateAdapter } from '@angular/material-moment-adapter';
 import { DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE } from '@angular/material/core';
@@ -22,8 +22,13 @@ export class HistoryComponent implements OnInit {
     httpStatus: ['2'],
   });
   @ViewChild('historyLog', {static: false}) historyLog;
+  viewMode = 'list';
 
   constructor(private fb: FormBuilder) {
+  }
+
+  switchView(event) {
+    this.viewMode = event.value;
   }
 
   refreshUrls() {

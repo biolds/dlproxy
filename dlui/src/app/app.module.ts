@@ -8,8 +8,9 @@ import { AppComponent } from './app.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCardModule } from '@angular/material/card';
-import { MatDatepickerModule } from '@angular/material/datepicker'; 
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -64,6 +65,7 @@ import { HistoryLogComponent } from './history-log/history-log.component';
     MatIconModule,
     MatInputModule,
     MatButtonModule,
+    MatButtonToggleModule,
     MatCardModule,
     MatDatepickerModule,
     MatDialogModule,

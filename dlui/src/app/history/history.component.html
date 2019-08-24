@@ -18,6 +18,12 @@
   </mat-form-field>
   <span class="right-align">
     <mat-form-field>
+      <mat-select matInput formControlName="mimeFilter" value="webpages" (selectionChange)="refreshUrls()">
+        <mat-option value="webpages">Webpages</mat-option>
+        <mat-option value="all">All</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field>
       <mat-select matInput formControlName="httpStatus" value="2" (selectionChange)="refreshUrls()">
         <mat-option value="1">Informational (1xx)</mat-option>
         <mat-option value="2">Success</mat-option>
@@ -27,14 +33,14 @@
         <mat-option value="all">All</mat-option>
       </mat-select>
     </mat-form-field>
-  </span>
-  <span class="right-align">
-    <mat-form-field>
-      <mat-select matInput formControlName="mimeFilter" value="webpages" (selectionChange)="refreshUrls()">
-        <mat-option value="webpages">Webpages</mat-option>
-        <mat-option value="all">All</mat-option>
-      </mat-select>
-    </mat-form-field>
-  </span>
+    <mat-button-toggle-group appearance="legacy" style="vertical-align: middle" (change)="switchView($event)" value="list">
+      <mat-button-toggle value="list">
+        <mat-icon class="search-icon">list</mat-icon>
+      </mat-button-toggle>
+      <mat-button-toggle value="share">
+        <mat-icon class="search-icon">share</mat-icon>
+      </mat-button-toggle>
+    </mat-button-toggle-group>
+    </span>
 </form>
-<app-history-log #historyLog [viewForm]="viewForm"></app-history-log>
+<app-history-log *ngIf="viewMode === 'list'" #historyLog [viewForm]="viewForm"></app-history-log>
