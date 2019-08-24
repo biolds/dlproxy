@@ -1,0 +1,6 @@
+short_name: Google Image
+description: Google Image
+icon: https://google.com/favicon.ico
+html_template: https://www.google.com/search?tbm=isch&tbs=imgo:1&q={searchTerms}
+shortcut: gi
+store_results: false
