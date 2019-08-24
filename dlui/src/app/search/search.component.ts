@@ -58,17 +58,20 @@ export class SearchComponent implements OnInit {
     this.selectedSE = this.searchEngines.filter(se => se.id === this.searchForm.value.searchEngine)[0];
   }
 
+  trackBySearch(index: number, s: Search): number {
+    return s.id;
+  }
+
+  searchURL(s: Search, terms: string) {
+    return '/search/' + s.search_engine.id + '?q=' + encodeURIComponent(s.query);
+  }
+
   runSearch() {
     let searchValue = this.searchForm.value.search;
     if (searchValue) {
       let path = '/search/' + this.selectedSE.id;
       window.location.href = path + '?q=' + this.searchForm.value.search;
     }
-  }
-
-  openSearch(search: Search) {
-    let path = '/search/' + search.search_engine.id;
-    window.location.href = path + '?q=' + search.query;
   }
 
   lookupBang() {
@@ -81,7 +84,6 @@ export class SearchComponent implements OnInit {
         if (se.shortcut && term === '!' + se.shortcut) {
           this.selectedSE = se;
           this.searchForm.patchValue({ searchEngine: se.id });
-          console.log('FOUND', se.shortcut);
         }
       }
     }

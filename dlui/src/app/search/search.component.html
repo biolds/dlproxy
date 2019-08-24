@@ -16,7 +16,7 @@
   </button>
 
   <mat-accordion *ngIf="lastSearches && lastSearches.objs">
-    <mat-expansion-panel *ngFor="let s of lastSearches.objs">
+    <mat-expansion-panel *ngFor="let s of lastSearches.objs; trackBy: trackBySearch">
       <mat-expansion-panel-header>
         <mat-panel-title>
           {{ s.date_str }}
@@ -29,7 +29,7 @@
           </ng-container>
         </mat-panel-description>
       </mat-expansion-panel-header>
-      <a [routerLink]="" (click)="openSearch(s)">Search on {{ s.search_engine.long_name }}</a>
+      <a rel="noopener noreferrer" [href]="searchURL(s)">Search on {{ s.search_engine.long_name }}</a>
       <mat-list *ngIf="s.results">
         <mat-list-item *ngFor="let url of s.results">
           <span>
