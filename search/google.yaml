@@ -1,0 +1,6 @@
+short_name: Google
+description: Google
+icon: https://google.com/favicon.ico
+html_template: https://google.com/search?q={searchTerms}
+shortcut: g
+store_results: false

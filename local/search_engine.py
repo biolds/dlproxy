@@ -2,16 +2,12 @@ import re
 import urllib.parse
 
 from defusedxml import ElementTree
-from sqlalchemy import Column, Integer, String
+import yaml
+from sqlalchemy import Boolean, Column, Integer, String
 from sqlalchemy.orm import relationship
 
 from local.sql import Base, Url
 
-
-SHORTCUTS = {
-    'DuckDuckGo': '',
-    'GitHub': 'gh'
-}
 
 class SearchEngine(Base):
     __tablename__ = 'search_engine'
@@ -23,6 +19,7 @@ class SearchEngine(Base):
     suggestion_template = Column(String(2048))
     icon = Column(String(4096))
     shortcut = Column(String(16))
+    store_results = Column(Boolean(), default=True)
 
     @classmethod
     def parse_odf(cls, db, content):
@@ -59,18 +56,33 @@ class SearchEngine(Base):
                 continue
             se.icon = elem.text
 
-        if not se.shortcut:
-            se.shortcut = SHORTCUTS.get(short_name, '')
+        se.shortcut = short_name.lower()
 
         db.add(se)
         db.commit()
 
     @classmethod
-    def parse_file(cls, db, f):
+    def parse_xml_file(cls, db, f):
         with open(f, 'r') as fd:
             buf = fd.read()
 
         cls.parse_odf(db, buf)
+
+    @classmethod
+    def parse_yaml_file(cls, db, f):
+        f = yaml.load(open(f, 'r').read(), Loader=yaml.SafeLoader)
+        if not f.get('long_name'):
+            f['long_name'] = f['short_name']
+
+        se = db.query(SearchEngine).filter(SearchEngine.short_name == f['short_name']).first()
+        if se:
+            for key, val in f.items():
+                setattr(se, key, val)
+        else:
+            se = SearchEngine(**f)
+
+        db.add(se)
+        db.commit()
 
     @classmethod
     def _get_search_terms(cls, se, url, in_url):

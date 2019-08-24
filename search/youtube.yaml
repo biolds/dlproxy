@@ -1,0 +1,6 @@
+short_name: YouTube
+description: YouTube
+icon: https://www.youtube.com/favicon.ico
+html_template: https://www.youtube.com/results?search_query={searchTerms}
+shortcut: yt
+store_results: true

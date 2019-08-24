@@ -1,0 +1,6 @@
+short_name: GitHub
+long_name: Search GitHub
+icon: https://github.com/favicon.ico
+html_template: https://github.com/search/?q={searchTerms}
+shortcut: gh
+store_results: true

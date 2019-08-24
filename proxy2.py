@@ -43,7 +43,7 @@ conf = None
 
 engine = create_engine('postgresql+psycopg2://dlproxy:dlproxy@localhost:5432/dlproxy',
             max_overflow=-1 # allow unlimited connections since, threads count is not limited
-            , echo=True)
+            ) #, echo=True)
 session_factory = sessionmaker(bind=engine)
 DBSession = scoped_session(session_factory)
 
@@ -196,7 +196,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                     # Create search result entry
                     search_match = SearchEngine.get_from_url(self.db, self.headers.get('referer'))
 
-                    if search_match is not None:
+                    if search_match is not None and search_match[0].store_results:
                         se, terms = search_match
                         referer = Url.get_or_create(self.db, self.headers.get('Referer'))
                         url = Url.get_or_create(self.db, self.path)
@@ -698,7 +698,9 @@ if __name__ == '__main__':
     # Parse search engines
     for f in os.listdir('search/'):
         if f.endswith('.xml'):
-            SearchEngine.parse_file(db, 'search/' + f)
+            SearchEngine.parse_xml_file(db, 'search/' + f)
+        elif f.endswith('.yaml'):
+            SearchEngine.parse_yaml_file(db, 'search/' + f)
 
     server_address = ('', conf.port)
     httpd = ThreadingHTTPServer(server_address, ProxyRequestHandler)

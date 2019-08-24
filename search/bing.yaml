@@ -1,0 +1,6 @@
+short_name: Bing
+description: Bing
+icon: https://www.bing.com/favicon.ico
+html_template: https://www.bing.com/search?q={searchTerms}
+shortcut: b
+store_results: false
