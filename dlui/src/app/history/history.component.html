@@ -37,10 +37,11 @@
       <mat-button-toggle value="list">
         <mat-icon class="search-icon">list</mat-icon>
       </mat-button-toggle>
-      <mat-button-toggle value="share">
+      <mat-button-toggle value="graph">
         <mat-icon class="search-icon">share</mat-icon>
       </mat-button-toggle>
     </mat-button-toggle-group>
     </span>
 </form>
 <app-history-log *ngIf="viewMode === 'list'" #historyLog [viewForm]="viewForm"></app-history-log>
+<app-history-graph *ngIf="viewMode === 'graph'" #historyLog [viewForm]="viewForm"></app-history-graph>
