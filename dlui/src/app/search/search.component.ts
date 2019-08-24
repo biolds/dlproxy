@@ -44,6 +44,7 @@ export class SearchComponent implements OnInit {
   selectedSE: SearchEngine;
   searchUrl: string;
   lastSearches: ObjList<Search>;
+  interval: number;
 
   constructor(
     private fb: FormBuilder,
@@ -67,6 +68,25 @@ export class SearchComponent implements OnInit {
     window.location.href = path + '?q=' + search.query;
   }
 
+  refreshLastSearches() {
+    this.searchEngineService.lastSearches().subscribe((lastSearches) => {
+      this.lastSearches = lastSearches;
+      this.lastSearches.objs = lastSearches.objs.map(search => {
+        let d = new Date(0);
+        d.setUTCSeconds(search.date);
+        const s = {
+            ...search,
+            date_str: d.toLocaleString()
+        } as Search;
+        return s;
+      });
+    });
+  }
+
+  ngOnDestroy() {
+    clearInterval(this.interval);
+  }
+
   ngOnInit() {
     this.searchEngineService.searchEngineList().subscribe((searchEngines) => {
       this.searchEngines = searchEngines.objs.map(se => {
@@ -82,17 +102,9 @@ export class SearchComponent implements OnInit {
 
       this.searchForm.patchValue({ searchEngine: seId });
     });
-    this.searchEngineService.lastSearches().subscribe((lastSearches) => {
-      this.lastSearches = lastSearches;
-      this.lastSearches.objs = lastSearches.objs.map(search => {
-        let d = new Date(0);
-        d.setUTCSeconds(search.date);
-        const s = {
-            ...search,
-            date_str: d.toLocaleString()
-        } as Search;
-        return s;
-      });
-    });
+    this.refreshLastSearches();
+    this.interval = setInterval(() => {
+      this.refreshLastSearches();
+    }, 5000);
   }
 }
