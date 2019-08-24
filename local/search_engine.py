@@ -173,12 +173,12 @@ class SearchEngine(Base):
         for key, val in se_params.items():
             val = val[0]
             if '{searchTerms}' in val:
-                se_params[key] = val.replace('{searchTerms}', query)
+                se_params[key] = [val.replace('{searchTerms}', query)]
                 break
         else:
             raise Exception('could not find {searchTerms} parameter')
 
-        se_url_query = urllib.parse.urlencode(se_params)
+        se_url_query = urllib.parse.urlencode(se_params, doseq=True)
         se_url = se_url._replace(query=se_url_query)
         return urllib.parse.urlunsplit(se_url)
 
@@ -222,3 +222,19 @@ def search_redirect(request, query, search_id):
     s = Search.get_or_create(request.db, search, search_engine)
     request.db.add(s)
     request.db.commit()
+
+
+ODS_PAGE = b'''
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/"
+                       xmlns:moz="http://www.mozilla.org/2006/browser/search/">
+  <ShortName>DlProxy</ShortName>
+  <Description>DlProxy search</Description>
+  <InputEncoding>[UTF-8]</InputEncoding>
+  <Url type="text/html" template="%ssearch/0?q={searchTerms}">
+  </Url>
+</OpenSearchDescription>
+'''
+
+def search_ods(request, query):
+    content = ODS_PAGE % request.conf.url.encode('ascii')
+    request.send_content_response(content, 'application/opensearchdescription+xml')

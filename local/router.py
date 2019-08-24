@@ -9,7 +9,7 @@ from local.cacert import cacert_download, cacert_generate
 from local.download import dl_download, download_delete, downloads_view, download_view, download_save, direct_download
 from local.index import render_index, UI_INDEX, UI_PATH
 from local.searchs import SearchResult, last_searches
-from local.search_engine import SearchEngine, search_redirect
+from local.search_engine import SearchEngine, search_redirect, search_ods
 from local.settings import settings_view
 from local.view import api_list_view
 
@@ -21,6 +21,7 @@ class Router:
         'dl_download': dl_download,
         'dl_open': lambda req, q, obj_id: dl_download(req, q, obj_id, attachment=False),
         'search': search_redirect,
+        'search_ods.xml': search_ods,
         'api': {
             'downloads': downloads_view,
             'download': {
@@ -42,6 +43,7 @@ class Router:
     def handle(self, request, conf):
         u = urllib.parse.urlsplit(request.path)
         scheme, netloc, path = u.scheme, u.netloc, u.path
+        request.conf = conf
 
         # TODO heck referer of unsfe methods
 
