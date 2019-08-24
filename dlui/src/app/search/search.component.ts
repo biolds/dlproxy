@@ -62,10 +62,6 @@ export class SearchComponent implements OnInit {
     return s.id;
   }
 
-  searchURL(s: Search, terms: string) {
-    return '/search/' + s.search_engine.id + '?q=' + encodeURIComponent(s.query);
-  }
-
   runSearch() {
     let searchValue = this.searchForm.value.search;
     if (searchValue) {

@@ -32,6 +32,7 @@ import { DownloadsComponent } from './downloads/downloads.component';
 import { HistoryComponent } from './history/history.component';
 import { UrlComponent } from './url/url.component';
 import { SearchComponent } from './search/search.component';
+import { SearchLogComponent } from './search-log/search-log.component';
 
 @NgModule({
   declarations: [
@@ -44,7 +45,8 @@ import { SearchComponent } from './search/search.component';
     DownloadsComponent,
     HistoryComponent,
     UrlComponent,
-    SearchComponent
+    SearchComponent,
+    SearchLogComponent
   ],
   entryComponents: [
     DownloadCancelDialog

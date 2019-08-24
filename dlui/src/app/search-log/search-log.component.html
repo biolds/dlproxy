@@ -1,0 +1,28 @@
+<mat-accordion *ngIf="lastSearches && lastSearches.objs">
+  <mat-expansion-panel *ngFor="let s of lastSearches.objs; trackBy: trackBySearch">
+    <mat-expansion-panel-header>
+      <mat-panel-title>
+        {{ s.date_str }}
+      </mat-panel-title>
+      <mat-panel-description>
+        <img *ngIf="s.search_engine.icon" [src]="s.search_engine.icon"  height="16" width="16">&nbsp;
+        {{ s.query }}
+        <ng-container *ngIf="s.results.length">
+          &nbsp;<small>{{ s.results.length + ' result' + (s.results.length > 1 ? 's': '') }}</small>
+        </ng-container>
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+    <a rel="noopener noreferrer" [href]="searchURL(s)">Search on {{ s.search_engine.long_name }}</a>
+    <mat-list *ngIf="s.results">
+      <mat-list-item *ngFor="let url of s.results">
+        <span>
+          <a target="_blank" rel="noopener noreferrer" [href]="url.url">
+            <mat-icon>open_in_new</mat-icon>
+            {{ url.title ? url.title : url.url }}
+          </a>
+        </span>
+        <span *ngIf="url.title" class="result-url">{{ url.url }}</span>
+      </mat-list-item>
+    </mat-list>
+  </mat-expansion-panel>
+</mat-accordion>
