@@ -13,16 +13,3 @@ mat-form-field {
 .search-field {
   width: 30%;
 }
-
-mat-accordion {
-  text-align: left;
-}
-
-mat-panel-title {
-  flex-grow: unset;
-}
-
-.result-url {
-  padding-top: 9px;
-  padding-left: 10px;
-}
