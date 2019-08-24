@@ -150,15 +150,14 @@ class SearchEngine(Base):
                         print('no param %s match for se %s' % (key, se.html_template))
                         break
                 else:
-                    if url_params.get(key) != val:
+                    if url_params.get(key, [None])[0] != val:
                         print('non matching param %s = %s for se %s (%s = %s)' % (key, url_params.get(key), se.html_template, key, val))
                         break
             else:
                 print('matching se %s, search terms: %s' % (se.html_template, terms))
                 return se, terms
 
-            print('no se match')
-            return None
+        print('no se match')
 
     def get_search_url(self, query):
         se_url = urllib.parse.urlsplit(self.html_template)

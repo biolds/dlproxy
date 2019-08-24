@@ -179,11 +179,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
                 UrlAccess.log(self.db, self.path, title, mime, self.headers.get('Referer'), is_ajax, status)
 
-                log_search = mime == 'text/html' and self.command == 'GET'
-                log_search = log_search and (status == 200 or (status >= 300 and status < 400))
+                log_search = mime == 'text/html' and self.command in ('GET', 'POST')
                 log_search = log_search and not is_ajax
 
-                if log_search:
+                if log_search and status in (200, 302):
                     # Create search entry
                     search_match = SearchEngine.get_from_url(self.db, self.path)
 
@@ -193,15 +192,40 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                         self.db.add(search)
                         self.db.commit()
 
-                    # Create search result entry
-                    search_match = SearchEngine.get_from_url(self.db, self.headers.get('referer'))
+                        if status == 302 and res and res.getheader('location') and search_match[0].store_results:
+                            url = Url.get_or_create(self.db, res.getheader('location'))
+                            search_res = SearchResult.get_or_create(self.db, search=search, url=url)
+                            self.db.add(search_res)
+                            self.db.commit()
 
-                    if search_match is not None and search_match[0].store_results:
+
+                    if status == 200:
+                    # Create search result entry where referers match a search query
+                        search_match = SearchEngine.get_from_url(self.db, self.headers.get('referer'))
+
+                        if search_match is not None and search_match[0].store_results:
+                            se, terms = search_match
+                            referer = Url.get_or_create(self.db, self.headers.get('Referer'))
+                            url = Url.get_or_create(self.db, self.path)
+                            search = Search.get_or_create(self.db, terms, se)
+                            self.db.add(search)
+                            search_res = SearchResult.get_or_create(self.db, search=search, url=url)
+                            self.db.add(search_res)
+                            self.db.commit()
+
+                ping_from = self.headers.get('ping-from')
+                ping_to = self.headers.get('ping-to')
+                if status == 200 and self.command == 'POST' and ping_from and ping_to:
+                    print('GOT pings %s %s' % (ping_from, ping_to))
+                    search_match = SearchEngine.get_from_url(self.db, ping_from)
+
+                    if search_match is not None:
                         se, terms = search_match
-                        referer = Url.get_or_create(self.db, self.headers.get('Referer'))
-                        url = Url.get_or_create(self.db, self.path)
                         search = Search.get_or_create(self.db, terms, se)
                         self.db.add(search)
+                        self.db.commit()
+
+                        url = Url.get_or_create(self.db, ping_to)
                         search_res = SearchResult.get_or_create(self.db, search=search, url=url)
                         self.db.add(search_res)
                         self.db.commit()

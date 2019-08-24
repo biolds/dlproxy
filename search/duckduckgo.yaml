@@ -2,7 +2,7 @@ short_name: DuckDuckGo
 long_name: Search DuckDuckGo
 description: Search DuckDuckGo
 icon: https://duckduckgo.com/favicon.ico
-html_template: https://duckduckgo.com/?q={searchTerms}
+html_template: https://duckduckgo.com/www?q={searchTerms}
 suggestion_template: https://duckduckgo.com/ac/?q={searchTerms}&amp;type=list
 shortcut: ""
 store_results: false

@@ -18,6 +18,6 @@ export class SearchEngineService {
   }
 
   searchEngineList(): Observable<ObjList<SearchEngine>> {
-    return this.http.get<ObjList<SearchEngine>>('/api/search_engines');
+    return this.http.get<ObjList<SearchEngine>>('/api/search_engines?order=short_name');
   }
 }
