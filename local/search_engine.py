@@ -1,5 +1,6 @@
 import re
 import urllib.parse
+from itertools import chain
 
 from defusedxml import ElementTree
 import yaml
@@ -184,7 +185,33 @@ class SearchEngine(Base):
 
 def search_redirect(request, query, search_id):
     search = query.get('q', [''])[0]
-    search_engine = request.db.query(SearchEngine).get(search_id)
+
+    # Look for a bang character
+    terms = search.split('"')
+    terms = [([t] if i % 2 else t.split(' ')) for i, t in enumerate(terms)]
+    terms = chain.from_iterable(terms)
+
+    search_engine = None
+    for t in terms:
+        if t.startswith('!'):
+            search_engine = request.db.query(SearchEngine).filter_by(shortcut=t[1:]).first()
+            if search_engine:
+                # Rebuild search query without the bang char
+                search_terms = []
+                for term in terms:
+                    if t == term:
+                        continue
+                    if ' ' in term:
+                        term = '"%s"' % term
+                    search_terms.append(term)
+                search = ' '.join(search_terms)
+                break
+
+    if search_engine is None:
+        if int(search_id):
+            search_engine = request.db.query(SearchEngine).get(search_id)
+        else:
+            search_engine = request.db.query(SearchEngine).filter_by(shortcut='').first()
 
     location = search_engine.get_search_url(search)
     request.send_response(302)

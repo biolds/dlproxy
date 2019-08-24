@@ -59,13 +59,32 @@ export class SearchComponent implements OnInit {
   }
 
   runSearch() {
-    let path = '/search/' + this.selectedSE.id;
-    window.location.href = path + '?q=' + this.searchForm.value.search;
+    let searchValue = this.searchForm.value.search;
+    if (searchValue) {
+      let path = '/search/' + this.selectedSE.id;
+      window.location.href = path + '?q=' + this.searchForm.value.search;
+    }
   }
 
   openSearch(search: Search) {
     let path = '/search/' + search.search_engine.id;
     window.location.href = path + '?q=' + search.query;
+  }
+
+  lookupBang() {
+    const terms = this.searchForm.value.search.split('"')
+        .map((t, i) => i % 2 ? t : t.split(' ') )
+        .flat().filter(t => t !== '');
+
+    for (let se of this.searchEngines) {
+      for (let term of terms) {
+        if (se.shortcut && term === '!' + se.shortcut) {
+          this.selectedSE = se;
+          this.searchForm.patchValue({ searchEngine: se.id });
+          console.log('FOUND', se.shortcut);
+        }
+      }
+    }
   }
 
   refreshLastSearches() {

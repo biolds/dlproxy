@@ -9,7 +9,7 @@
   </mat-form-field>
   <mat-form-field class="search-field">
     <img *ngIf="selectedSE.icon" matPrefix [src]="selectedSE.icon" height="16" width="16" class="prefix-image">
-    <input matInput placeholder="Search" formControlName="search" autofocus (keyup.enter)="runSearch()">
+    <input matInput placeholder="Search" formControlName="search" autofocus (input)="lookupBang()" (keyup.enter)="runSearch()">
   </mat-form-field>
   <button mat-button title="Search" type="button" (click)="runSearch()">
     <mat-icon>search</mat-icon>
