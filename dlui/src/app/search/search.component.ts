@@ -58,10 +58,6 @@ export class SearchComponent implements OnInit {
     this.selectedSE = this.searchEngines.filter(se => se.id === this.searchForm.value.searchEngine)[0];
   }
 
-  trackBySearch(index: number, s: Search): number {
-    return s.id;
-  }
-
   runSearch() {
     let searchValue = this.searchForm.value.search;
     if (searchValue) {

@@ -13,6 +13,10 @@ export class SearchLogComponent implements OnInit {
 
   constructor() { }
 
+  trackBySearch(index: number, s: Search): number {
+    return s.id;
+  }
+
   searchURL(s: Search, terms: string) {
     return '/search/' + s.search_engine.id + '?q=' + encodeURIComponent(s.query);
   }
