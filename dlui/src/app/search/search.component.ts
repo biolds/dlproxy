@@ -2,7 +2,6 @@ import { Component, OnInit, isDevMode } from '@angular/core';
 import { FormBuilder } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { ObjList } from '../objlist';
 import { Search } from '../search';
@@ -51,8 +50,7 @@ export class SearchComponent implements OnInit {
     private fb: FormBuilder,
     private searchEngineService: SearchEngineService,
     private sanitizer: DomSanitizer,
-    private route: ActivatedRoute,
-    private popup: MatSnackBar
+    private route: ActivatedRoute
   ) {
   }
 
@@ -100,20 +98,6 @@ export class SearchComponent implements OnInit {
         return s;
       });
     });
-  }
-
-  addOpenSearch() {
-    if (false) {
-    //if (window.external && ("AddSearchProvider" in window.external)) {
-      /* Build the url of the form http://host/osd.xml */
-      var url = document.URL;
-      var prefix = RegExp("^https\?://[^/]*/").exec(url);
-      window.external.AddSearchProvider(prefix + "osd.xml");
-    } else {
-      this.popup.open('This browser does not support OpenSearch plugins.', '', {
-        duration: 10000
-      });
-    }
   }
 
   ngOnDestroy() {
