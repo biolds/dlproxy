@@ -33,6 +33,7 @@ import { HistoryComponent } from './history/history.component';
 import { UrlComponent } from './url/url.component';
 import { SearchComponent } from './search/search.component';
 import { SearchLogComponent } from './search-log/search-log.component';
+import { HistoryLogComponent } from './history-log/history-log.component';
 
 @NgModule({
   declarations: [
@@ -46,7 +47,8 @@ import { SearchLogComponent } from './search-log/search-log.component';
     HistoryComponent,
     UrlComponent,
     SearchComponent,
-    SearchLogComponent
+    SearchLogComponent,
+    HistoryLogComponent
   ],
   entryComponents: [
     DownloadCancelDialog

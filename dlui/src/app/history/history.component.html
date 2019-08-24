@@ -37,11 +37,4 @@
     </mat-form-field>
   </span>
 </form>
-<div #historyList [ngStyle]="{'height': urlsHeight + 'px'}">
-  <mat-list *ngIf="urls" [ngStyle]="{'padding-top': urlsTop + 'px'}">
-    <app-url *ngFor="let url of urls.objs; trackBy: trackByUrls"
-          [url]="url">
-    </app-url>
-  </mat-list>
-  <mat-spinner *ngIf="loading" class="loading" diameter="32"></mat-spinner>
-</div>
+<app-history-log #historyLog [viewForm]="viewForm"></app-history-log>

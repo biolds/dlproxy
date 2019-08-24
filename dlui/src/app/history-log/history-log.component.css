@@ -1,0 +1,6 @@
+.loading {
+  position: fixed;
+  display: block;
+  left: 50%;
+  bottom: 12px;
+}

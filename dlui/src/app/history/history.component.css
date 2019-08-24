@@ -10,13 +10,6 @@ mat-form-field {
   float: right;
 }
 
-.loading {
-  position: fixed;
-  display: block;
-  left: 50%;
-  bottom: 12px;
-}
-
 .search-icon {
   vertical-align: middle;
 }
