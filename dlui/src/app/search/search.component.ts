@@ -106,16 +106,25 @@ export class SearchComponent implements OnInit {
 
   ngOnInit() {
     this.searchEngineService.searchEngineList().subscribe((searchEngines) => {
+      let seId = null;
+
       this.searchEngines = searchEngines.objs.map(se => {
+        if (se.shortcut === '') {
+          this.selectedSE = se;
+          seId = se.id;
+        }
+
         let icon = this.sanitizer.bypassSecurityTrustUrl(_sanitizeUrl(se.icon));
         return {
           ...se,
           icon: icon
         } as SearchEngine;
       });
-      
-      this.selectedSE = this.searchEngines[0];
-      let seId = searchEngines.objs[0].id;
+
+      if (seId === null) {
+        this.selectedSE = this.searchEngines[0];
+        seId = searchEngines.objs[0].id;
+      }
 
       this.searchForm.patchValue({ searchEngine: seId });
     });
