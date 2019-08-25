@@ -116,7 +116,7 @@ export class HistoryGraphComponent implements OnInit {
   }
 
   private initSvg() {
-    this.svg = d3.select('svg')
+    this.svg = d3.select('#d3-graph')
       .append('g')
       .attr('transform', 'translate(' + this.margin.left + ',' + this.margin.top + ')');
   }

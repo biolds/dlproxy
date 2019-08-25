@@ -347,7 +347,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         self._relay(s)
 
     def _relay(self, s, is_websocket=False):
-        is_websocket = is_websocket
         conns = [self.connection, s]
         self.close_connection = 0
         print('CONNECTed')
