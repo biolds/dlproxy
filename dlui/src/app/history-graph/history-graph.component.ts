@@ -78,6 +78,7 @@ export class HistoryGraphComponent implements OnInit {
   @Input() viewForm: FormGroup;
   private nodes: any;
   private links: any;
+  private svg: any;
 
   constructor() {
   }
@@ -95,10 +96,10 @@ export class HistoryGraphComponent implements OnInit {
         .force("charge", d3Force.forceManyBody())
         .force("center", d3Force.forceCenter(width / 2, height / 2));
 
-    const svg = d3.select("#d3-graph")
+    this.svg = d3.select("#d3-graph")
         .attr("viewBox", `0 0 ${width} ${height}`);
 
-    const link = svg.append("g")
+    const link = this.svg.append("g")
         .attr("stroke", "#999")
         .attr("stroke-opacity", 0.6)
       .selectAll("line")
@@ -106,7 +107,7 @@ export class HistoryGraphComponent implements OnInit {
       .join("line")
         .attr("stroke-width", (d: any) => Math.sqrt(d.value));
 
-    const node = svg.append("g")
+    const node = this.svg.append("g")
         .attr("stroke", "#fff")
         .attr("stroke-width", 1.5)
       .selectAll("circle")
@@ -131,6 +132,6 @@ export class HistoryGraphComponent implements OnInit {
           .attr("cy", d => d.y);
     });
 
-    setTimeout(this.addNodes, 1000);
+    setTimeout(() => this.addNodes(), 1000);
   }
 }
