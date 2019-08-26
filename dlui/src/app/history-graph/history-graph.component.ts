@@ -388,16 +388,22 @@ function drag(simulation) {
 })
 export class HistoryGraphComponent implements OnInit {
   @Input() viewForm: FormGroup;
+  private nodes: any;
+  private links: any;
 
   constructor() {
   }
 
-  ngOnInit() {
-    const links = data.links.map(d => Object.create(d));
-    const nodes = data.nodes.map(d => Object.create(d));
+  addNodes() {
+    console.log('adding nodes');
+  }
 
-    const simulation = d3Force.forceSimulation(nodes)
-        .force("link", d3Force.forceLink(links).id((d: any) => d.id))
+  ngOnInit() {
+    this.links = data.links.map(d => Object.create(d));
+    this.nodes = data.nodes.map(d => Object.create(d));
+
+    const simulation = d3Force.forceSimulation(this.nodes)
+        .force("link", d3Force.forceLink(this.links).id((d: any) => d.id))
         .force("charge", d3Force.forceManyBody())
         .force("center", d3Force.forceCenter(width / 2, height / 2));
 
@@ -408,15 +414,15 @@ export class HistoryGraphComponent implements OnInit {
         .attr("stroke", "#999")
         .attr("stroke-opacity", 0.6)
       .selectAll("line")
-      .data(links)
+      .data(this.links)
       .join("line")
-        .attr("stroke-width", d => Math.sqrt(d.value));
+        .attr("stroke-width", (d: any) => Math.sqrt(d.value));
 
     const node = svg.append("g")
         .attr("stroke", "#fff")
         .attr("stroke-width", 1.5)
       .selectAll("circle")
-      .data(nodes)
+      .data(this.nodes)
       .join("circle")
         .attr("r", 5)
         .attr("fill", color())
@@ -436,5 +442,7 @@ export class HistoryGraphComponent implements OnInit {
           .attr("cx", d => d.x)
           .attr("cy", d => d.y);
     });
+
+    setTimeout(this.addNodes, 1000);
   }
 }
