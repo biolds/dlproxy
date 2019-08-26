@@ -50,18 +50,18 @@ function drag(simulation) {
      d.fx = d.x;
      d.fy = d.y;
    }
-   
+ 
    function dragged(d) {
      d.fx = d3.event.x;
      d.fy = d3.event.y;
    }
-   
+ 
    function dragended(d) {
      if (!d3.event.active) simulation.alphaTarget(0);
      d.fx = null;
      d.fy = null;
    }
-   
+ 
    return d3Drag.drag()
        .on("start", dragstarted)
        .on("drag", dragged)
@@ -85,7 +85,19 @@ export class HistoryGraphComponent implements OnInit {
   }
 
   addNodes() {
-    console.log('adding nodes');
+    const nodes = [...this.nodes, {"id": "Dlproxy", "group": 3}];
+    this.svg.append("g")
+      .selectAll("circle")
+      .data(nodes)
+      .enter()
+        .append("circle")
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 1.5)
+          .attr("r", 5)
+          .attr("fill", color())
+          .call(drag(this.simulation));
+
+    //this.simulation.start();
   }
 
   ngOnInit() {
