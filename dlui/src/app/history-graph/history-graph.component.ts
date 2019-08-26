@@ -79,6 +79,7 @@ export class HistoryGraphComponent implements OnInit {
   private nodes: any;
   private links: any;
   private svg: any;
+  private simulation: any;
 
   constructor() {
   }
@@ -91,7 +92,7 @@ export class HistoryGraphComponent implements OnInit {
     this.links = data.links.map(d => Object.create(d));
     this.nodes = data.nodes.map(d => Object.create(d));
 
-    const simulation = d3Force.forceSimulation(this.nodes)
+    this.simulation = d3Force.forceSimulation(this.nodes)
         .force("link", d3Force.forceLink(this.links).id((d: any) => d.id))
         .force("charge", d3Force.forceManyBody())
         .force("center", d3Force.forceCenter(width / 2, height / 2));
@@ -115,12 +116,12 @@ export class HistoryGraphComponent implements OnInit {
       .join("circle")
         .attr("r", 5)
         .attr("fill", color())
-        .call(drag(simulation));
+        .call(drag(this.simulation));
 
     node.append("title")
         .text(d => d.id);
 
-    simulation.on("tick", () => {
+    this.simulation.on("tick", () => {
       link
           .attr("x1", d => d.source.x)
           .attr("y1", d => d.source.y)
