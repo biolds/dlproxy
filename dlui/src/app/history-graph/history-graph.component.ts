@@ -76,6 +76,8 @@ function drag(simulation) {
 })
 export class HistoryGraphComponent implements OnInit {
   @Input() viewForm: FormGroup;
+  private d3Node: any;
+  private d3Link: any;
   private nodes: any;
   private links: any;
   private svg: any;
@@ -112,7 +114,7 @@ export class HistoryGraphComponent implements OnInit {
     this.svg = d3.select("#d3-graph")
         .attr("viewBox", `0 0 ${width} ${height}`);
 
-    const link = this.svg.append("g")
+    this.d3Link = this.svg.append("g")
         .attr("stroke", "#999")
         .attr("stroke-opacity", 0.6)
       .selectAll("line")
@@ -120,7 +122,7 @@ export class HistoryGraphComponent implements OnInit {
       .join("line")
         .attr("stroke-width", (d: any) => Math.sqrt(d.value));
 
-    const node = this.svg.append("g")
+    this.d3Node = this.svg.append("g")
         .attr("stroke", "#fff")
         .attr("stroke-width", 1.5)
       .selectAll("circle")
@@ -130,19 +132,19 @@ export class HistoryGraphComponent implements OnInit {
         .attr("fill", color())
         .call(drag(this.simulation));
 
-    node.append("title")
+    this.d3Node.append("title")
         .text(d => d.id);
 
     this.simulation.on("tick", () => {
-      link
-          .attr("x1", d => d.source.x)
-          .attr("y1", d => d.source.y)
-          .attr("x2", d => d.target.x)
-          .attr("y2", d => d.target.y);
+      this.d3Link
+          .attr("x1", (d: any) => d.source.x)
+          .attr("y1", (d: any) => d.source.y)
+          .attr("x2", (d: any) => d.target.x)
+          .attr("y2", (d: any) => d.target.y);
 
-      node
-          .attr("cx", d => d.x)
-          .attr("cy", d => d.y);
+      this.d3Node
+          .attr("cx", (d: any) => d.x)
+          .attr("cy", (d: any) => d.y);
     });
 
     setTimeout(() => this.addNodes(), 1000);
