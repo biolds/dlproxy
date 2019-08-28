@@ -88,8 +88,7 @@ export class HistoryGraphComponent implements OnInit {
   }
 
   addNodes() {
-    //const nodes = [...this.nodes, {"id": "Dlproxy", "group": 3}];
-    ithis.nodes.push({"id": "Dlproxy", "group": 3});
+    const nodes = [...this.nodes, {"id": "Dlproxy", "group": 3}];
     // this.simulation.stop();
     this.svg.append("g")
       .selectAll("circle")
@@ -124,8 +123,8 @@ export class HistoryGraphComponent implements OnInit {
     this.svg = d3.select("#d3-graph")
         .attr("viewBox", `0 0 ${width} ${height}`);
 
-    this.d3Link = this.svg.append("g");
-    this.d3Link.attr("stroke", "#999")
+    this.d3Link = this.svg.append("g")
+        .attr("stroke", "#999")
         .attr("stroke-opacity", 0.6)
       .selectAll("line")
       .data(this.links)
@@ -133,8 +132,8 @@ export class HistoryGraphComponent implements OnInit {
         .attr("stroke-width", (d: any) => Math.sqrt(d.value));
 
     this.drag = drag(this.simulation);
-    this.d3Node = this.svg.append("g");
-    this.d3Node.attr("stroke", "#fff")
+    this.d3Node = this.svg.append("g")
+        .attr("stroke", "#fff")
         .attr("stroke-width", 1.5)
       .selectAll("circle")
       .data(this.nodes)
