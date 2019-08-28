@@ -13,7 +13,7 @@ from local.sql import Base, Url
 class SearchEngine(Base):
     __tablename__ = 'search_engine'
     id = Column(Integer, primary_key=True)
-    short_name = Column(String(16))
+    short_name = Column(String(32))
     long_name = Column(String(48))
     description = Column(String(1024))
     html_template = Column(String(2048))

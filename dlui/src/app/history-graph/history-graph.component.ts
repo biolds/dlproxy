@@ -82,12 +82,14 @@ export class HistoryGraphComponent implements OnInit {
   private links: any;
   private svg: any;
   private simulation: any;
+  private drag: any;
 
   constructor() {
   }
 
   addNodes() {
     const nodes = [...this.nodes, {"id": "Dlproxy", "group": 3}];
+    // this.simulation.stop();
     this.svg.append("g")
       .selectAll("circle")
       .data(nodes)
@@ -97,9 +99,16 @@ export class HistoryGraphComponent implements OnInit {
           .attr("stroke-width", 1.5)
           .attr("r", 5)
           .attr("fill", color())
-          .call(drag(this.simulation));
+          .call(this.drag);
 
-    //this.simulation.start();
+    this.d3Node.append("title")
+        .text(d => d.id);
+
+    this.d3Node
+          .attr("cx", (d: any) => d.x)
+          .attr("cy", (d: any) => d.y);
+
+    this.simulation.restart();
   }
 
   ngOnInit() {
@@ -122,6 +131,7 @@ export class HistoryGraphComponent implements OnInit {
       .join("line")
         .attr("stroke-width", (d: any) => Math.sqrt(d.value));
 
+    this.drag = drag(this.simulation);
     this.d3Node = this.svg.append("g")
         .attr("stroke", "#fff")
         .attr("stroke-width", 1.5)
@@ -130,7 +140,7 @@ export class HistoryGraphComponent implements OnInit {
       .join("circle")
         .attr("r", 5)
         .attr("fill", color())
-        .call(drag(this.simulation));
+        .call(this.drag);
 
     this.d3Node.append("title")
         .text(d => d.id);
