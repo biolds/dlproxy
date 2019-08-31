@@ -83,32 +83,62 @@ export class HistoryGraphComponent implements OnInit {
   private svg: any;
   private simulation: any;
   private drag: any;
+  private nodesGroup: any;
+  private linksGroup: any;
+  newNodeNo = 1;
 
   constructor() {
   }
 
   addNodes() {
-    const nodes = [...this.nodes, {"id": "Dlproxy", "group": 3}];
-    // this.simulation.stop();
-    this.svg.append("g")
-      .selectAll("circle")
-      .data(nodes)
-      .enter()
-        .append("circle")
-          .attr("stroke", "#fff")
-          .attr("stroke-width", 1.5)
-          .attr("r", 5)
-          .attr("fill", color())
-          .call(this.drag);
+    console.log(this.newNodeNo);
+    this.nodes.push({"id": `Dlproxy${this.newNodeNo}`, "group": 3});
 
-    this.d3Node.append("title")
-        .text(d => d.id);
+    let src = 'Child2';
+    if (this.newNodeNo !== 1) {
+      src = `Dlproxy${this.newNodeNo - 1}`;
+    }
+    this.links.push({source: src, target: `Dlproxy${this.newNodeNo}`});
+    this.newNodeNo += 1;
 
-    this.d3Node
-          .attr("cx", (d: any) => d.x)
-          .attr("cy", (d: any) => d.y);
+    this.updateSimulation();
 
-    this.simulation.restart();
+    //this.simulation.nodes(nodes);
+    //let newNodes = this.nodesGroup // .append("g")
+    //  .selectAll("circle")
+    //  .data(nodes)
+    //  .enter()
+    //     .append("circle")
+    //      .attr("stroke", "#fff")
+    //      .attr("stroke-width", 1.5)
+    //      .attr("r", 5)
+    //      .attr("fill", color())
+    //      .attr("cx", (d: any) => d.x)
+    //      .attr("cy", (d: any) => d.y)
+    //      .call(this.drag);
+
+    //newNodes.append("title")
+    //    .text(d => d.id);
+
+
+    //this.simulation.restart();
+  }
+
+  updateSimulation() {
+    // Apply the general update pattern to the nodes.
+    let node = this.d3Node.data(this.nodes, function(d) { return d.id;});
+    node.exit().remove();
+    node = node.enter().append("circle").attr("fill", function(d) { return color(); }).attr("r", 8).merge(node);
+
+    // Apply the general update pattern to the links.
+    let link = this.d3Link.data(this.links, function(d) { return d.source.id + "-" + d.target.id; });
+    link.exit().remove();
+    link = link.enter().append("line").merge(link);
+
+    // Update and restart the simulation.
+    this.simulation.nodes(this.nodes);
+    this.simulation.force("link").links(this.links);
+    this.simulation.alpha(1).restart();
   }
 
   ngOnInit() {
@@ -123,7 +153,8 @@ export class HistoryGraphComponent implements OnInit {
     this.svg = d3.select("#d3-graph")
         .attr("viewBox", `0 0 ${width} ${height}`);
 
-    this.d3Link = this.svg.append("g")
+    this.linksGroup = this.svg.append("g");
+    this.d3Link = this.linksGroup
         .attr("stroke", "#999")
         .attr("stroke-opacity", 0.6)
       .selectAll("line")
@@ -132,7 +163,8 @@ export class HistoryGraphComponent implements OnInit {
         .attr("stroke-width", (d: any) => Math.sqrt(d.value));
 
     this.drag = drag(this.simulation);
-    this.d3Node = this.svg.append("g")
+    this.nodesGroup = this.svg.append("g");
+    this.d3Node = this.nodesGroup
         .attr("stroke", "#fff")
         .attr("stroke-width", 1.5)
       .selectAll("circle")
@@ -157,6 +189,11 @@ export class HistoryGraphComponent implements OnInit {
           .attr("cy", (d: any) => d.y);
     });
 
+    this.updateSimulation();
     setTimeout(() => this.addNodes(), 1000);
+    setTimeout(() => this.addNodes(), 2000);
+    setTimeout(() => this.addNodes(), 3000);
+    setTimeout(() => this.addNodes(), 4000);
+    setTimeout(() => this.addNodes(), 5000);
   }
 }
