@@ -16,18 +16,18 @@ function drag(simulation) {
      d.fx = d.x;
      d.fy = d.y;
    }
- 
+
    function dragged(d) {
      d.fx = d3.event.x;
      d.fy = d3.event.y;
    }
- 
+
    function dragended(d) {
      if (!d3.event.active) simulation.alphaTarget(0);
      d.fx = null;
      d.fy = null;
    }
- 
+
    return d3Drag.drag()
        .on("start", dragstarted)
        .on("drag", dragged)
@@ -46,7 +46,7 @@ export class HistoryGraphComponent implements OnInit {
   private d3Link: any;
   private nodes: any;
   private links: any;
-  private svg: any;
+  private color: any;
   private simulation: any;
   private nodesGroup: any;
   private linksGroup: any;
@@ -55,83 +55,81 @@ export class HistoryGraphComponent implements OnInit {
   constructor() {
   }
 
+  restart() {
+    // Apply the general update pattern to the nodes.
+    this.d3Node = this.d3Node.data(this.nodes, (d: any) => { return d.id;});
+    this.d3Node.exit().remove();
+    this.d3Node = this.d3Node.enter().append("circle")
+      .attr("fill", (d: any) => { return this.color(d.id); })
+      .attr("r", 8)
+      .call(drag(this.simulation))
+      .merge(this.d3Node);
+
+    // Apply the general update pattern to the links.
+    this.d3Link = this.d3Link.data(this.links, (d: any) => { return d.source.id + "-" + d.target.id; });
+    this.d3Link.exit().remove();
+    this.d3Link = this.d3Link.enter().append("line").merge(this.d3Link);
+
+    // Update and restart the simulation.
+    this.simulation.nodes(this.nodes);
+    this.simulation.force("link").links(this.links);
+    this.simulation.alpha(1).restart();
+  }
+
   ngOnInit() {
     var svg = d3.select("#d3-graph"),
         width = +svg.attr("width"),
-        height = +svg.attr("height"),
-        color = d3Scale.scaleOrdinal(d3ScaleChromatic.schemeCategory10);
-    
+        height = +svg.attr("height");
+    this.color = d3Scale.scaleOrdinal(d3ScaleChromatic.schemeCategory10);
+
     var a = {id: "a"},
         b = {id: "b"},
-        c = {id: "c"},
-        nodes = [a, b, c],
-        links = [];
-    
-    var simulation = d3Force.forceSimulation(<any>nodes)
+        c = {id: "c"};
+    this.nodes = [a, b, c];
+    this.links = [];
+
+    this.simulation = d3Force.forceSimulation(this.nodes)
         .force("charge", d3Force.forceManyBody().strength(-1000))
-        .force("link", d3Force.forceLink(links).distance(200))
+        .force("link", d3Force.forceLink(this.links).distance(200))
         .force("x", d3Force.forceX())
         .force("y", d3Force.forceY())
         .alphaTarget(1)
-        .on("tick", ticked);
-    
-    var g = svg.append("g").attr("transform", "translate(" + width / 2 + "," + height / 2 + ")"),
-        link = g.append("g").attr("stroke", "#000").attr("stroke-width", 1.5).selectAll(".link"),
-        node = g.append("g").attr("stroke", "#fff").attr("stroke-width", 1.5).selectAll(".node");
-    
-    restart();
-    
-    setTimeout(function() {
-      links.push({source: a, target: b}); // Add a-b.
-      links.push({source: b, target: c}); // Add b-c.
-      links.push({source: c, target: a}); // Add c-a.
-      restart();
+        .on("tick", () => {
+      	  this.d3Node.attr("cx", function(d: any) { return d.x; })
+      	      .attr("cy", function(d: any) { return d.y; })
+
+      	  this.d3Link.attr("x1", function(d: any) { return d.source.x; })
+      	      .attr("y1", function(d: any) { return d.source.y; })
+      	      .attr("x2", function(d: any) { return d.target.x; })
+      	      .attr("y2", function(d: any) { return d.target.y; });
+	});
+
+    var g = svg.append("g").attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+    this.d3Link = g.append("g").attr("stroke", "#000").attr("stroke-width", 1.5).selectAll(".link");
+    this.d3Node = g.append("g").attr("stroke", "#fff").attr("stroke-width", 1.5).selectAll(".node");
+
+    this.restart();
+
+    setTimeout(() => {
+      this.links.push({source: a, target: b}); // Add a-b.
+      this.links.push({source: b, target: c}); // Add b-c.
+      this.links.push({source: c, target: a}); // Add c-a.
+      this.restart();
     }, 1000);
-    
-    setTimeout(function() {
-      nodes.pop(); // Remove c.
-      links.pop(); // Remove c-a.
-      links.pop(); // Remove b-c.
-      restart();
+
+    setTimeout(() => {
+      this.nodes.pop(); // Remove c.
+      this.links.pop(); // Remove c-a.
+      this.links.pop(); // Remove b-c.
+      this.restart();
     }, 2000);
-    
-    setTimeout(function() {
-      nodes.push(c); // Re-add c.
-      links.push({source: b, target: c}); // Re-add b-c.
-      links.push({source: c, target: a}); // Re-add c-a.
-      restart();
+
+    setTimeout(() => {
+      this.nodes.push(c); // Re-add c.
+      this.links.push({source: b, target: c}); // Re-add b-c.
+      this.links.push({source: c, target: a}); // Re-add c-a.
+      this.restart();
     }, 3000);
-    
-    function restart() {
-    
-      // Apply the general update pattern to the nodes.
-      node = node.data(nodes, (d: any) => { return d.id;});
-      node.exit().remove();
-      node = node.enter().append("circle")
-        .attr("fill", (d: any) => { return color(d.id); })
-	.attr("r", 8)
-	.call(drag(simulation))
-        .merge(<any>node);
-    
-      // Apply the general update pattern to the links.
-      link = link.data(links, (d: any) => { return d.source.id + "-" + d.target.id; });
-      link.exit().remove();
-      link = link.enter().append("line").merge(<any>link);
-    
-      // Update and restart the simulation.
-      simulation.nodes(<any>nodes);
-      (<any>simulation.force("link")).links(<any>links);
-      simulation.alpha(1).restart();
-    }
-    
-    function ticked() {
-      node.attr("cx", function(d: any) { return d.x; })
-          .attr("cy", function(d: any) { return d.y; })
-    
-      link.attr("x1", function(d: any) { return d.source.x; })
-          .attr("y1", function(d: any) { return d.source.y; })
-          .attr("x2", function(d: any) { return d.target.x; })
-          .attr("y2", function(d: any) { return d.target.y; });
-    }
+
   }
 }
