@@ -10,64 +10,6 @@ import * as d3Array from 'd3-array';
 import * as d3Axis from 'd3-axis';
 import * as d3Force from 'd3-force';
 
-const data = {
-  "nodes": [
-    {"id": "Napoleon", "group": 1},
-    {"id": "CountessdeLo", "group": 1},
-    {"id": "Champtercier", "group": 1},
-    {"id": "Cravatte", "group": 1},
-    {"id": "Count", "group": 1},
-    {"id": "Cosette", "group": 5},
-    {"id": "Champmathieu", "group": 2},
-    {"id": "Chenildieu", "group": 2},
-    {"id": "Cochepaille", "group": 2},
-    {"id": "Combeferre", "group": 8},
-    {"id": "Courfeyrac", "group": 8},
-    {"id": "Claquesous", "group": 4},
-    {"id": "Child1", "group": 10},
-    {"id": "Child2", "group": 10},
-  ],
-  "links": [
-    {"source": "Chenildieu", "target": "Champmathieu", "value": 2},
-    {"source": "Cochepaille", "target": "Champmathieu", "value": 2},
-    {"source": "Cochepaille", "target": "Chenildieu", "value": 2},
-    {"source": "Courfeyrac", "target": "Combeferre", "value": 13},
-    {"source": "Child2", "target": "Child1", "value": 3},
-  ]
-};
-
-const width = 600;
-const height = 400;
-
-function color() {
-  const scale = d3Scale.scaleOrdinal(d3ScaleChromatic.schemeCategory10);
-  return d => scale(d.group);
-}
-
-function drag(simulation) {
-   function dragstarted(d) {
-     if (!d3.event.active) simulation.alphaTarget(0.3).restart();
-     d.fx = d.x;
-     d.fy = d.y;
-   }
- 
-   function dragged(d) {
-     d.fx = d3.event.x;
-     d.fy = d3.event.y;
-   }
- 
-   function dragended(d) {
-     if (!d3.event.active) simulation.alphaTarget(0);
-     d.fx = null;
-     d.fy = null;
-   }
- 
-   return d3Drag.drag()
-       .on("start", dragstarted)
-       .on("drag", dragged)
-       .on("end", dragended);
-}
-
 @Component({
   selector: 'app-history-graph',
   encapsulation: ViewEncapsulation.None,
@@ -90,110 +32,79 @@ export class HistoryGraphComponent implements OnInit {
   constructor() {
   }
 
-  addNodes() {
-    console.log(this.newNodeNo);
-    this.nodes.push({"id": `Dlproxy${this.newNodeNo}`, "group": 3});
-
-    let src = 'Child2';
-    if (this.newNodeNo !== 1) {
-      src = `Dlproxy${this.newNodeNo - 1}`;
-    }
-    this.links.push({source: src, target: `Dlproxy${this.newNodeNo}`});
-    this.newNodeNo += 1;
-
-    this.updateSimulation();
-
-    //this.simulation.nodes(nodes);
-    //let newNodes = this.nodesGroup // .append("g")
-    //  .selectAll("circle")
-    //  .data(nodes)
-    //  .enter()
-    //     .append("circle")
-    //      .attr("stroke", "#fff")
-    //      .attr("stroke-width", 1.5)
-    //      .attr("r", 5)
-    //      .attr("fill", color())
-    //      .attr("cx", (d: any) => d.x)
-    //      .attr("cy", (d: any) => d.y)
-    //      .call(this.drag);
-
-    //newNodes.append("title")
-    //    .text(d => d.id);
-
-
-    //this.simulation.restart();
-  }
-
-  updateSimulation() {
-    // Apply the general update pattern to the nodes.
-    let node = this.d3Node.data(this.nodes, function(d) { return d.id;});
-    node.exit().remove();
-    node = node.enter().append("circle").attr("fill", function(d) { return color(); }).attr("r", 8).merge(node);
-
-    // Apply the general update pattern to the links.
-    let link = this.d3Link.data(this.links, function(d) { return d.source.id + "-" + d.target.id; });
-    link.exit().remove();
-    link = link.enter().append("line").merge(link);
-
-    // Update and restart the simulation.
-    this.simulation.nodes(this.nodes);
-    this.simulation.force("link").links(this.links);
-    this.simulation.alpha(1).restart();
-  }
-
   ngOnInit() {
-    this.links = data.links.map(d => Object.create(d));
-    this.nodes = data.nodes.map(d => Object.create(d));
-
-    this.simulation = d3Force.forceSimulation(this.nodes)
-        .force("link", d3Force.forceLink(this.links).id((d: any) => d.id))
-        .force("charge", d3Force.forceManyBody())
-        .force("center", d3Force.forceCenter(width / 2, height / 2));
-
-    this.svg = d3.select("#d3-graph")
-        .attr("viewBox", `0 0 ${width} ${height}`);
-
-    this.linksGroup = this.svg.append("g");
-    this.d3Link = this.linksGroup
-        .attr("stroke", "#999")
-        .attr("stroke-opacity", 0.6)
-      .selectAll("line")
-      .data(this.links)
-      .join("line")
-        .attr("stroke-width", (d: any) => Math.sqrt(d.value));
-
-    this.drag = drag(this.simulation);
-    this.nodesGroup = this.svg.append("g");
-    this.d3Node = this.nodesGroup
-        .attr("stroke", "#fff")
-        .attr("stroke-width", 1.5)
-      .selectAll("circle")
-      .data(this.nodes)
-      .join("circle")
-        .attr("r", 5)
-        .attr("fill", color())
-        .call(this.drag);
-
-    this.d3Node.append("title")
-        .text(d => d.id);
-
-    this.simulation.on("tick", () => {
-      this.d3Link
-          .attr("x1", (d: any) => d.source.x)
-          .attr("y1", (d: any) => d.source.y)
-          .attr("x2", (d: any) => d.target.x)
-          .attr("y2", (d: any) => d.target.y);
-
-      this.d3Node
-          .attr("cx", (d: any) => d.x)
-          .attr("cy", (d: any) => d.y);
-    });
-
-    this.updateSimulation();
-    setTimeout(() => this.addNodes(), 1000);
-    setTimeout(() => this.addNodes(), 2000);
-    setTimeout(() => this.addNodes(), 3000);
-    setTimeout(() => this.addNodes(), 4000);
-    setTimeout(() => this.addNodes(), 5000);
+    var svg = d3.select("#d3-graph"),
+        width = +svg.attr("width"),
+        height = +svg.attr("height"),
+        color = d3Scale.scaleOrdinal(d3ScaleChromatic.schemeCategory10);
+    
+    var a = {id: "a"},
+        b = {id: "b"},
+        c = {id: "c"},
+        nodes = [a, b, c],
+        links = [];
+    
+    var simulation = d3Force.forceSimulation(nodes)
+        .force("charge", d3Force.forceManyBody().strength(-1000))
+        .force("link", d3Force.forceLink(links).distance(200))
+        .force("x", d3Force.forceX())
+        .force("y", d3Force.forceY())
+        .alphaTarget(1)
+        .on("tick", ticked);
+    
+    var g = svg.append("g").attr("transform", "translate(" + width / 2 + "," + height / 2 + ")"),
+        link = g.append("g").attr("stroke", "#000").attr("stroke-width", 1.5).selectAll(".link"),
+        node = g.append("g").attr("stroke", "#fff").attr("stroke-width", 1.5).selectAll(".node");
+    
+    restart();
+    
+    setTimeout(function() {
+      links.push({source: a, target: b}); // Add a-b.
+      links.push({source: b, target: c}); // Add b-c.
+      links.push({source: c, target: a}); // Add c-a.
+      restart();
+    }, 1000);
+    
+    setTimeout(function() {
+      nodes.pop(); // Remove c.
+      links.pop(); // Remove c-a.
+      links.pop(); // Remove b-c.
+      restart();
+    }, 2000);
+    
+    setTimeout(function() {
+      nodes.push(c); // Re-add c.
+      links.push({source: b, target: c}); // Re-add b-c.
+      links.push({source: c, target: a}); // Re-add c-a.
+      restart();
+    }, 3000);
+    
+    function restart() {
+    
+      // Apply the general update pattern to the nodes.
+      node = node.data(nodes, function(d) { return d.id;});
+      node.exit().remove();
+      node = node.enter().append("circle").attr("fill", function(d) { return color(d.id); }).attr("r", 8).merge(node);
+    
+      // Apply the general update pattern to the links.
+      link = link.data(links, function(d) { return d.source.id + "-" + d.target.id; });
+      link.exit().remove();
+      link = link.enter().append("line").merge(link);
+    
+      // Update and restart the simulation.
+      simulation.nodes(nodes);
+      simulation.force("link").links(links);
+      simulation.alpha(1).restart();
+    }
+    
+    function ticked() {
+      node.attr("cx", function(d) { return d.x; })
+          .attr("cy", function(d) { return d.y; })
+    
+      link.attr("x1", function(d) { return d.source.x; })
+          .attr("y1", function(d) { return d.source.y; })
+          .attr("x2", function(d) { return d.target.x; })
+          .attr("y2", function(d) { return d.target.y; });
+    }
   }
 }
