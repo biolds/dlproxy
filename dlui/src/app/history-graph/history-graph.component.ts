@@ -1,6 +1,9 @@
 import { Component, Input, OnInit, ViewEncapsulation } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 
+import { ObjList } from '../objlist';
+import { UrlAccess } from '../url-access';
+
 import * as d3 from 'd3-selection';
 import * as d3Scale from 'd3-scale';
 import * as d3ScaleChromatic from 'd3-scale-chromatic';
@@ -9,6 +12,9 @@ import * as d3Shape from 'd3-shape';
 import * as d3Array from 'd3-array';
 import * as d3Axis from 'd3-axis';
 import * as d3Force from 'd3-force';
+
+import { UrlService } from '../url.service';
+
 
 function drag(simulation) {
    function dragstarted(d) {
@@ -50,12 +56,77 @@ export class HistoryGraphComponent implements OnInit {
   private simulation: any;
   private nodesGroup: any;
   private linksGroup: any;
+  urlMap = {};
+  urls: UrlAccess[];
   newNodeNo = 1;
 
-  constructor() {
+  constructor(private urlService: UrlService) {
   }
 
+  getUrls() {
+    let startDate = this.viewForm.value.startDate.hours(0).minutes(0).seconds(0).unix();
+    let endDate = this.viewForm.value.endDate.hours(0).minutes(0).seconds(0).unix();
+    endDate += 60 * 60 * 24;
+
+    let filter = `f_date__gte=${startDate}&f_date__lt=${endDate}`;
+
+    if (this.viewForm.value.mimeFilter === 'webpages') {
+      filter += '&f_url__mimetype=text/html&f_url__is_ajax=false';
+    }
+
+    if (this.viewForm.value.search) {
+      filter += `&q=${this.viewForm.value.search}`;
+    }
+
+    if (this.viewForm.value.httpStatus !== 'all') {
+      let s = this.viewForm.value.httpStatus;
+      s = parseInt(s, 10);
+      if (this.viewForm.value.mimeFilter === 'webpages' && s === 2) {
+        filter += `&f_status=200`;
+      } else {
+        filter += `&f_status__gte=${s}00&f_status__lt=${s + 1}00`;
+      }
+    }
+
+    const searchTerms = this.viewForm.value.search.split(' ').filter(s => s !== '').map(s => s.toLowerCase());
+    this.urlService.getUrlAccesses(0, 100, filter).subscribe((urls) => {
+      console.log('got response', urls);
+      this.urls = urls.objs;
+
+      this.urls.map((url) => {
+        console.log('got url', url.url);
+        let dst = url.url.id;
+        if (this.urlMap[dst] === undefined) {
+          this.urlMap[dst] = {id: dst, title: url.url.url, url: url.url.url};
+          this.nodes.push(this.urlMap[dst]);
+        }
+
+        if (url.url.title) {
+          this.urlMap[dst].title = url.url.title;
+        }
+
+        if (url.referer) {
+          let src = url.referer.id;
+
+          if (this.urlMap[src] === undefined) {
+            this.urlMap[src] = {id: src, title: url.referer.url, url: url.referer.url};
+            this.nodes.push(this.urlMap[src]);
+          }
+
+          let srcNode = this.urlMap[src];
+          let dstNode = this.urlMap[dst];
+          let link = {source: srcNode, target: dstNode}
+          console.log('adding link', link);
+          this.links.push(link);
+        }
+      });
+      this.restart();
+    });
+  }
+
+
   restart() {
+    console.log('current', this.nodes);
     // Apply the general update pattern to the nodes.
     this.d3Node = this.d3Node.data(this.nodes, (d: any) => { return d.id;});
     this.d3Node.exit().remove();
@@ -90,15 +161,12 @@ export class HistoryGraphComponent implements OnInit {
         height = +svg.attr("height");
     this.color = d3Scale.scaleOrdinal(d3ScaleChromatic.schemeCategory10);
 
-    var a = {id: "a", title: "title A"},
-        b = {id: "b", title: "title B"},
-        c = {id: "c", title: "title C"};
-    this.nodes = [a, b, c];
+    this.nodes = [];
     this.links = [];
 
     this.simulation = d3Force.forceSimulation(this.nodes)
-        .force("charge", d3Force.forceManyBody().strength(-1000))
-        .force("link", d3Force.forceLink(this.links).distance(200))
+        .force("charge", d3Force.forceManyBody().strength(-100))
+        .force("link", d3Force.forceLink(this.links).distance(20))
         .force("x", d3Force.forceX())
         .force("y", d3Force.forceY())
         .alphaTarget(1)
@@ -115,30 +183,9 @@ export class HistoryGraphComponent implements OnInit {
 
     var g = svg.append("g").attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
     this.d3Link = g.append("g").attr("stroke", "#000").attr("stroke-width", 1.5).selectAll(".link");
-    this.d3Node = g.append("g")/*.attr("stroke", "#fff").attr("stroke-width", 1.5)*/.selectAll(".node");
+    this.d3Node = g.append("g").selectAll(".node");
 
+    this.getUrls();
     this.restart();
-
-    setTimeout(() => {
-      this.links.push({source: a, target: b}); // Add a-b.
-      this.links.push({source: b, target: c}); // Add b-c.
-      this.links.push({source: c, target: a}); // Add c-a.
-      this.restart();
-    }, 1000);
-
-    setTimeout(() => {
-      this.nodes.pop(); // Remove c.
-      this.links.pop(); // Remove c-a.
-      this.links.pop(); // Remove b-c.
-      this.restart();
-    }, 2000);
-
-    setTimeout(() => {
-      this.nodes.push(c); // Re-add c.
-      this.links.push({source: b, target: c}); // Re-add b-c.
-      this.links.push({source: c, target: a}); // Re-add c-a.
-      this.restart();
-    }, 3000);
-
   }
 }

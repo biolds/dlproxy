@@ -84,7 +84,7 @@ export class HistoryLogComponent implements OnInit {
     if (this.viewForm.value.httpStatus !== 'all') {
       let s = this.viewForm.value.httpStatus;
       s = parseInt(s, 10);
-      if (this.viewForm.value.mimeFilter === 'webpages') {
+      if (this.viewForm.value.mimeFilter === 'webpages' && s === 2) {
         filter += `&f_status=200`;
       } else {
         filter += `&f_status__gte=${s}00&f_status__lt=${s + 1}00`;
