@@ -10,6 +10,30 @@ import * as d3Array from 'd3-array';
 import * as d3Axis from 'd3-axis';
 import * as d3Force from 'd3-force';
 
+function drag(simulation) {
+   function dragstarted(d) {
+     if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+     d.fx = d.x;
+     d.fy = d.y;
+   }
+ 
+   function dragged(d) {
+     d.fx = d3.event.x;
+     d.fy = d3.event.y;
+   }
+ 
+   function dragended(d) {
+     if (!d3.event.active) simulation.alphaTarget(0);
+     d.fx = null;
+     d.fy = null;
+   }
+ 
+   return d3Drag.drag()
+       .on("start", dragstarted)
+       .on("drag", dragged)
+       .on("end", dragended);
+}
+
 @Component({
   selector: 'app-history-graph',
   encapsulation: ViewEncapsulation.None,
@@ -44,7 +68,7 @@ export class HistoryGraphComponent implements OnInit {
         nodes = [a, b, c],
         links = [];
     
-    var simulation = d3Force.forceSimulation(nodes)
+    var simulation = d3Force.forceSimulation(<any>nodes)
         .force("charge", d3Force.forceManyBody().strength(-1000))
         .force("link", d3Force.forceLink(links).distance(200))
         .force("x", d3Force.forceX())
@@ -82,9 +106,12 @@ export class HistoryGraphComponent implements OnInit {
     function restart() {
     
       // Apply the general update pattern to the nodes.
-      node = node.data(nodes, function(d) { return d.id;});
+      node = node.data(<any>nodes, function(d) { return d.id;});
       node.exit().remove();
-      node = node.enter().append("circle").attr("fill", function(d) { return color(d.id); }).attr("r", 8).merge(node);
+      //node = node.enter().append("circle").attr("fill", function(d) { return color(d.id); }).attr("r", 8).merge(node);
+      node = node.enter().append("circle")
+        .attr("fill", function(d) { return color(d.id); }).attr("r", 8).call(drag(simulation))
+        .merge(node);
     
       // Apply the general update pattern to the links.
       link = link.data(links, function(d) { return d.source.id + "-" + d.target.id; });
