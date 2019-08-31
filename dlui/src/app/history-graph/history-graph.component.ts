@@ -48,7 +48,6 @@ export class HistoryGraphComponent implements OnInit {
   private links: any;
   private svg: any;
   private simulation: any;
-  private drag: any;
   private nodesGroup: any;
   private linksGroup: any;
   newNodeNo = 1;
@@ -106,32 +105,33 @@ export class HistoryGraphComponent implements OnInit {
     function restart() {
     
       // Apply the general update pattern to the nodes.
-      node = node.data(<any>nodes, function(d) { return d.id;});
+      node = node.data(nodes, (d: any) => { return d.id;});
       node.exit().remove();
-      //node = node.enter().append("circle").attr("fill", function(d) { return color(d.id); }).attr("r", 8).merge(node);
       node = node.enter().append("circle")
-        .attr("fill", function(d) { return color(d.id); }).attr("r", 8).call(drag(simulation))
-        .merge(node);
+        .attr("fill", (d: any) => { return color(d.id); })
+	.attr("r", 8)
+	.call(drag(simulation))
+        .merge(<any>node);
     
       // Apply the general update pattern to the links.
-      link = link.data(links, function(d) { return d.source.id + "-" + d.target.id; });
+      link = link.data(links, (d: any) => { return d.source.id + "-" + d.target.id; });
       link.exit().remove();
-      link = link.enter().append("line").merge(link);
+      link = link.enter().append("line").merge(<any>link);
     
       // Update and restart the simulation.
-      simulation.nodes(nodes);
-      simulation.force("link").links(links);
+      simulation.nodes(<any>nodes);
+      (<any>simulation.force("link")).links(<any>links);
       simulation.alpha(1).restart();
     }
     
     function ticked() {
-      node.attr("cx", function(d) { return d.x; })
-          .attr("cy", function(d) { return d.y; })
+      node.attr("cx", function(d: any) { return d.x; })
+          .attr("cy", function(d: any) { return d.y; })
     
-      link.attr("x1", function(d) { return d.source.x; })
-          .attr("y1", function(d) { return d.source.y; })
-          .attr("x2", function(d) { return d.target.x; })
-          .attr("y2", function(d) { return d.target.y; });
+      link.attr("x1", function(d: any) { return d.source.x; })
+          .attr("y1", function(d: any) { return d.source.y; })
+          .attr("x2", function(d: any) { return d.target.x; })
+          .attr("y2", function(d: any) { return d.target.y; });
     }
   }
 }
