@@ -4,5 +4,5 @@ description: Search DuckDuckGo
 icon: https://duckduckgo.com/favicon.ico
 html_template: https://duckduckgo.com/html?q={searchTerms}
 suggestion_template: https://duckduckgo.com/ac/?q={searchTerms}&amp;type=list
-shortcut: ""
+shortcut:
 store_results: false

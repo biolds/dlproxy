@@ -210,7 +210,7 @@ def search_redirect(request, query, search_id):
         if int(search_id):
             search_engine = request.db.query(SearchEngine).get(search_id)
         else:
-            search_engine = request.db.query(SearchEngine).filter_by(shortcut='').first()
+            search_engine = request.db.query(SearchEngine).filter_by(shortcut=None).first()
 
     location = search_engine.get_search_url(search)
     request.send_response(302)

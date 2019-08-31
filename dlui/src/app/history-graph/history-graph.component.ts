@@ -59,16 +59,24 @@ export class HistoryGraphComponent implements OnInit {
     // Apply the general update pattern to the nodes.
     this.d3Node = this.d3Node.data(this.nodes, (d: any) => { return d.id;});
     this.d3Node.exit().remove();
-    this.d3Node = this.d3Node.enter().append("circle")
+    let newNodes = this.d3Node.enter().append("g").attr('class', 'node');
+    newNodes.append('circle')
       .attr("fill", (d: any) => { return this.color(d.id); })
-      .attr("r", 8)
-      .call(drag(this.simulation))
+      .attr("r", 8);
+    newNodes.append('text')
+      .attr('x', 11)
+      .attr('y', 5)
+      .text(function(d: any) { return d.title; });
+
+    this.d3Node = newNodes.call(drag(this.simulation))
       .merge(this.d3Node);
 
     // Apply the general update pattern to the links.
     this.d3Link = this.d3Link.data(this.links, (d: any) => { return d.source.id + "-" + d.target.id; });
     this.d3Link.exit().remove();
-    this.d3Link = this.d3Link.enter().append("line").merge(this.d3Link);
+    this.d3Link = this.d3Link.enter().append("line")
+        .attr('class', 'link')
+        .merge(this.d3Link);
 
     // Update and restart the simulation.
     this.simulation.nodes(this.nodes);
@@ -82,9 +90,9 @@ export class HistoryGraphComponent implements OnInit {
         height = +svg.attr("height");
     this.color = d3Scale.scaleOrdinal(d3ScaleChromatic.schemeCategory10);
 
-    var a = {id: "a"},
-        b = {id: "b"},
-        c = {id: "c"};
+    var a = {id: "a", title: "title A"},
+        b = {id: "b", title: "title B"},
+        c = {id: "c", title: "title C"};
     this.nodes = [a, b, c];
     this.links = [];
 
@@ -95,8 +103,9 @@ export class HistoryGraphComponent implements OnInit {
         .force("y", d3Force.forceY())
         .alphaTarget(1)
         .on("tick", () => {
-      	  this.d3Node.attr("cx", function(d: any) { return d.x; })
-      	      .attr("cy", function(d: any) { return d.y; })
+          this.d3Node.attr("transform", function(d: any) {
+            return "translate(" + d.x + "," + d.y + ")";
+          })
 
       	  this.d3Link.attr("x1", function(d: any) { return d.source.x; })
       	      .attr("y1", function(d: any) { return d.source.y; })
@@ -106,7 +115,7 @@ export class HistoryGraphComponent implements OnInit {
 
     var g = svg.append("g").attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
     this.d3Link = g.append("g").attr("stroke", "#000").attr("stroke-width", 1.5).selectAll(".link");
-    this.d3Node = g.append("g").attr("stroke", "#fff").attr("stroke-width", 1.5).selectAll(".node");
+    this.d3Node = g.append("g")/*.attr("stroke", "#fff").attr("stroke-width", 1.5)*/.selectAll(".node");
 
     this.restart();
 
