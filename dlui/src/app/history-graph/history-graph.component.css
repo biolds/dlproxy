@@ -9,3 +9,11 @@
   top: 10px;
   left: 0;
 }
+
+.node > text {
+  display: none;
+}
+
+.node > text.hovered {
+  display: inline;
+}

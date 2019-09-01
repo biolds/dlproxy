@@ -58,8 +58,10 @@ export class HistoryGraphComponent implements OnInit {
   private linksGroup: any;
   urlsMap = {};
   linksMap = {};
+  domainsMap = {};
   urls: UrlAccess[];
   newNodeNo = 1;
+  interval: number;
 
   constructor(private urlService: UrlService) {
   }
@@ -90,12 +92,7 @@ export class HistoryGraphComponent implements OnInit {
     }
 
     const searchTerms = this.viewForm.value.search.split(' ').filter(s => s !== '').map(s => s.toLowerCase());
-    this.urlService.getUrlAccesses(0, 100, filter).subscribe((urls) => {
-      if (urls.objs == this.objs) {
-        console.log('no change');
-        return;
-      }
-
+    this.urlService.getUrlAccesses(0, 1000, filter).subscribe((urls) => {
       const nodesLength = this.nodes.length;
       const linksLength = this.links.length;
 
@@ -202,11 +199,16 @@ export class HistoryGraphComponent implements OnInit {
     let newNodes = this.d3Node.enter().append("g").attr('class', 'node');
     newNodes.append('circle')
       .attr("fill", (d: any) => { return this.color(d.id); })
-      .attr("r", 8);
+      .attr("r", 8)
+      .on('mouseover', function(d){
+          console.log('mouse over', this, d);
+          d3.select('#d3-graph').selectAll('.node > text').attr('class', '');
+          d3.select(this.parentNode).selectAll('text').attr('class', 'hovered');
+      });
     newNodes.append('text')
       .attr('x', 11)
       .attr('y', 5)
-      .text(function(d: any) { return d.title; });
+      .text(function(d: any) { return d.title; })
 
     this.d3Node = newNodes.call(drag(this.simulation))
       .merge(this.d3Node);
@@ -237,7 +239,7 @@ export class HistoryGraphComponent implements OnInit {
 
     this.simulation = d3Force.forceSimulation(this.nodes)
         .force("charge", d3Force.forceManyBody().strength(-300))
-        .force("link", d3Force.forceLink(this.links).distance(120))
+        .force("link", d3Force.forceLink(this.links).distance(60))
         .force("x", d3Force.forceX())
         .force("y", d3Force.forceY())
         .alphaTarget(1)
