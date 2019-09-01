@@ -56,7 +56,8 @@ export class HistoryGraphComponent implements OnInit {
   private simulation: any;
   private nodesGroup: any;
   private linksGroup: any;
-  urlMap = {};
+  urlsMap = {};
+  linksMap = {};
   urls: UrlAccess[];
   newNodeNo = 1;
 
@@ -90,40 +91,108 @@ export class HistoryGraphComponent implements OnInit {
 
     const searchTerms = this.viewForm.value.search.split(' ').filter(s => s !== '').map(s => s.toLowerCase());
     this.urlService.getUrlAccesses(0, 100, filter).subscribe((urls) => {
-      console.log('got response', urls);
-      this.urls = urls.objs;
+      if (urls.objs == this.objs) {
+        console.log('no change');
+        return;
+      }
 
-      this.urls.map((url) => {
+      const nodesLength = this.nodes.length;
+      const linksLength = this.links.length;
+
+      let urlsMap = {};
+      let linksMap = {};
+
+      urls.objs.map((url) => {
         console.log('got url', url.url);
         let dst = url.url.id;
-        if (this.urlMap[dst] === undefined) {
-          this.urlMap[dst] = {id: dst, title: url.url.url, url: url.url.url};
-          this.nodes.push(this.urlMap[dst]);
+        if (!urlsMap[dst]) {
+          if (this.urlsMap[dst] === undefined) {
+            urlsMap[dst] = {id: dst, title: url.url.url, url: url.url.url};
+            this.nodes.push(urlsMap[dst]);
+            console.log('addding node', dst);
+          } else {
+            urlsMap[dst] = this.urlsMap[dst];
+            console.log('node already there', dst);
+          }
         }
 
         if (url.url.title) {
-          this.urlMap[dst].title = url.url.title;
+          urlsMap[dst].title = url.url.title;
         }
 
         if (url.referer) {
           let src = url.referer.id;
 
-          if (this.urlMap[src] === undefined) {
-            this.urlMap[src] = {id: src, title: url.referer.url, url: url.referer.url};
-            this.nodes.push(this.urlMap[src]);
+          if (!urlsMap[src]) {
+            if (this.urlsMap[src] === undefined) {
+              urlsMap[src] = {id: src, title: url.referer.url, url: url.referer.url};
+              this.nodes.push(urlsMap[src]);
+              console.log('addding node', src);
+            } else {
+              urlsMap[src] = this.urlsMap[src];
+              console.log('node already there', src);
+            }
           }
 
-          let srcNode = this.urlMap[src];
-          let dstNode = this.urlMap[dst];
-          let link = {source: srcNode, target: dstNode}
-          console.log('adding link', link);
-          this.links.push(link);
+          let srcNode = urlsMap[src];
+          let dstNode = urlsMap[dst];
+
+          if (!linksMap[src]) {
+            linksMap[src] = {};
+          }
+
+          if (!linksMap[src] || !linksMap[src][dst]) {
+            if (!this.linksMap[src] || !this.linksMap[src][dst]) {
+              let link = {source: srcNode, target: dstNode};
+              linksMap[src][dst] = link;
+              console.log('adding link', src, dst);
+              this.links.push(link);
+            } else {
+              linksMap[src][dst] = this.linksMap[src][dst];
+              console.log('link already exist', src, dst);
+            }
+          }
         }
       });
-      this.restart();
+
+      let gotChange = (this.nodes.length !== nodesLength) || (this.links.length !== linksLength);
+
+      // remove deleted elements
+      let newNodes = [];
+      this.nodes.slice(0, nodesLength).map((url, i) => {
+        if (urlsMap[url.id]) {
+          newNodes.push(url);
+        } else {
+          gotChange = true;
+        }
+      });
+      this.nodes = newNodes.concat(this.nodes.slice(nodesLength));
+
+      let newLinks = [];
+      this.links.slice(0, linksLength).map((link, i) => {
+        if (linksMap[link.source.id] && linksMap[link.source.id][link.target.id]) {
+          newLinks.push(link);
+        } else {
+          gotChange = true;
+        }
+      });
+      this.links = newLinks.concat(this.links.slice(linksLength));
+
+      this.urlsMap = urlsMap;
+      this.linksMap = linksMap;
+
+      if (gotChange) {
+        this.restart();
+        console.log('restared');
+      } else {
+        console.log('no change');
+      }
     });
   }
 
+  refreshUrls() {
+    this.getUrls();
+  }
 
   restart() {
     console.log('current', this.nodes);
@@ -193,5 +262,9 @@ export class HistoryGraphComponent implements OnInit {
 
     this.getUrls();
     this.restart();
+
+    this.interval = setInterval(() => {
+      this.refreshUrls();
+    }, 5000);
   }
 }
