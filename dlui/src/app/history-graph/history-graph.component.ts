@@ -57,6 +57,7 @@ export class HistoryGraphComponent implements OnInit {
   private simulation: any;
   private nodesGroup: any;
   private linksGroup: any;
+  private scale: any;
   urlsMap = {};
   linksMap = {};
   domainsMap = {};
@@ -68,6 +69,7 @@ export class HistoryGraphComponent implements OnInit {
   }
 
   getDomain(url: string): string {
+    console.log('url:', url);
     let u = new URL(url);
     console.log('got domain', u.hostname);
     return u.hostname;
@@ -104,7 +106,7 @@ export class HistoryGraphComponent implements OnInit {
         }
 
         if (!linksMap[linkId]) {
-          const link = {source: domainsMap[domain], target: urlsMap[id], type: 'domain'};
+          const link = {source: domainsMap[domain], target: urlsMap[id], type: 'domain', strength: 0.01, distance: 100};
           linksMap[linkId] = link;
           console.log('added domain link', linkId);
           this.links.push(link);
@@ -166,7 +168,7 @@ export class HistoryGraphComponent implements OnInit {
 
           if (!linksMap[src] || !linksMap[src][dst]) {
             if (!this.linksMap[src] || !this.linksMap[src][dst]) {
-              let link = {source: srcNode, target: dstNode, type: 'referer'};
+              let link = {source: srcNode, target: dstNode, type: 'referer', strength: 0.1, distance: 100};
               linksMap[src][dst] = link;
               console.log('adding link', src, dst);
               this.links.push(link);
@@ -233,7 +235,7 @@ export class HistoryGraphComponent implements OnInit {
       .attr('y', 5)
       .text(function(d: any) { return d.title; })
     newNodes.append('circle')
-      .attr("fill", (d: any) => { return this.color(d.id); })
+      .attr("fill", (d: any) => { return this.color(d.type === 'domain' ? d.url : this.getDomain(d.url)); })
       .attr("r", 8)
       .each(function (d) {
         console.log('node type', d.type);
@@ -257,7 +259,6 @@ export class HistoryGraphComponent implements OnInit {
     this.d3Link = this.d3Link.enter().append("line")
         .attr('class', 'link')
         .each(function (d) {
-          console.log('node type', d.type);
           if (d.type === 'domain') {
             d3.select(this).attr('stroke', '#ddd');
           }
@@ -266,7 +267,8 @@ export class HistoryGraphComponent implements OnInit {
 
     // Update and restart the simulation.
     this.simulation.nodes(this.nodes);
-    this.simulation.force("link").links(this.links);
+    this.simulation.force("link").links(this.links).strength(function (s: any) {return s.strength;})
+        .distance(function (s: any) {console.log('got s', s); return s.distance;});
     this.simulation.alpha(1).restart();
   }
 
@@ -276,7 +278,12 @@ export class HistoryGraphComponent implements OnInit {
     var svg = d3.select("#d3-graph")
         .attr("preserveAspectRatio", "xMinYMin meet")
         .attr("viewBox", `0 0 ${width} ${height}`);
-    this.color = d3Scale.scaleOrdinal(d3ScaleChromatic.schemeCategory10);
+    this.scale = d3Scale.scaleOrdinal(d3ScaleChromatic.schemeCategory10);
+    this.color = (domain) => {
+      let c = this.scale(domain.length);
+      console.log('color', domain, c);
+      return c;
+    }
 
     this.nodes = [];
     this.links = [];
