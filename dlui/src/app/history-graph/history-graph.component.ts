@@ -9,6 +9,7 @@ import * as d3Shape from 'd3-shape';
 import * as d3Array from 'd3-array';
 import * as d3Axis from 'd3-axis';
 import * as d3Force from 'd3-force';
+import * as d3Zoom from 'd3-zoom';
 
 import { ObjList } from '../objlist';
 import { UrlAccess } from '../url-access';
@@ -310,12 +311,17 @@ export class HistoryGraphComponent implements OnInit {
 	});
 
     var g = svg.append("g")
-        .attr("transform", `translate(${width / 2},${height / 2})`)
         .attr("width", width)
         .attr("height", height);
 
-    this.d3Link = g.append("g").attr("stroke", "#000").attr("stroke-width", 1.5).selectAll(".link");
-    this.d3Node = g.append("g").selectAll(".node");
+    var z = g.append("g")
+        .attr("transform", `translate(${width / 2},${height / 2})`)
+    this.d3Link = z.append("g").attr("stroke", "#000").attr("stroke-width", 1.5).selectAll(".link");
+    this.d3Node = z.append("g").selectAll(".node");
+
+    svg.call(d3Zoom.zoom().on("zoom", () => {
+          g.attr("transform", d3.event.transform);
+        }));
 
     this.getUrls();
     this.restart();
