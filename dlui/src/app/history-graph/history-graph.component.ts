@@ -272,6 +272,10 @@ export class HistoryGraphComponent implements OnInit {
     this.simulation.alpha(1).restart();
   }
 
+  ngOnDestroy() {
+    clearInterval(this.interval);
+  }
+
   ngOnInit() {
     var width = 1600;
     var height = 800;
