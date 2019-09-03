@@ -418,13 +418,13 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             setattr(res, 'headers', res.msg)
             setattr(res, 'response_version', version_table[res.version])
             is_download, filename = self._is_download(netloc, path, res)
-            print('download:', download)
+            print('download:', is_download)
             print('status %s' % res.status)
             if inject:
                 print('inject/content-type:', res.getheader('content-type'))
 
             global conf
-            if is_download and res.status >= 200 and res.status < 300:
+            if is_download and self.command in ('GET', 'POST') and res.status >= 200 and res.status < 300:
                 if '/' in filename:
                     _, filename = filename.rsplit('/', 1)
                 filename = filename.replace('\\', '').lstrip('.')
@@ -623,7 +623,11 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 return False, None
         if content_type in ('text/javascript', 'application/javascript', 'application/x-javascript',
                 'application/x-www-form-urlencoded', 'application/json', 'application/x-protobuf', 'application/x-protobuffer',
-                'application/x-chrome-extension'):
+                'application/json+protobuf', 'application/x-chrome-extension'):
+            return False, None
+
+        # Google calendar / chat ...
+        if netloc.endswith('google.com') and content_type == 'application/gzip':
             return False, None
 
         print('headers:', res.getheaders())
