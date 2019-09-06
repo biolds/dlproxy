@@ -10,14 +10,6 @@
   left: 0;
 }
 
-.node > text {
+text.hidden {
   display: none;
-}
-
-.node > text.visible {
-  display: inline;
-}
-
-.node > text.domain {
-  display: inline;
 }

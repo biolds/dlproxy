@@ -42,6 +42,9 @@ function drag(simulation) {
        .on("end", dragended);
 }
 
+const showLabelsAt = 0.9;
+const fadeLabelsAt = 0.7;
+
 @Component({
   selector: 'app-history-graph',
   encapsulation: ViewEncapsulation.None,
@@ -65,6 +68,8 @@ export class HistoryGraphComponent implements OnInit {
   urls: UrlAccess[];
   newNodeNo = 1;
   interval: number;
+  currentZoom: number;
+  private selectedNode: any;
 
   constructor(private urlService: UrlService) {
   }
@@ -230,10 +235,12 @@ export class HistoryGraphComponent implements OnInit {
     // Apply the general update pattern to the nodes.
     this.d3Node = this.d3Node.data(this.nodes, (d: any) => { return d.id;});
     this.d3Node.exit().remove();
+    let resetZoom = () => this.resetZoom();
     let newNodes = this.d3Node.enter().append("g").attr('class', 'node');
     newNodes.append('text')
       .attr('x', 11)
       .attr('y', 5)
+      .attr('class', 'urltext')
       .text(function(d: any) { return d.title; })
     newNodes.append('circle')
       .attr("fill", (d: any) => { return this.color(d.type === 'domain' ? d.url : this.getDomain(d.url)); })
@@ -245,8 +252,9 @@ export class HistoryGraphComponent implements OnInit {
         } else {
           d3.select(this).on('mouseover', function(d){
               console.log('mouse over', this, d);
-              d3.select('#d3-graph').selectAll('.node > text.visible').attr('class', '');
-              d3.select(this.parentNode).selectAll('text').attr('class', 'visible');
+              d3.select('#d3-graph').selectAll('.node > text.urltext').attr('class', 'urltext');
+              d3.select(this.parentNode).selectAll('text').attr('class', 'urltext selected');
+              resetZoom();
           });
         }
       });
@@ -261,16 +269,37 @@ export class HistoryGraphComponent implements OnInit {
         .attr('class', 'link')
         .each(function (d) {
           if (d.type === 'domain') {
-            d3.select(this).attr('stroke', '#ddd');
+            d3.select(this).attr('stroke', '#ddd').attr;
           }
         })
         .merge(this.d3Link);
 
     // Update and restart the simulation.
     this.simulation.nodes(this.nodes);
-    this.simulation.force("link").links(this.links).strength(function (s: any) {return s.strength;})
-        .distance(function (s: any) {console.log('got s', s); return s.distance;});
+    this.simulation.force("link").links(this.links)
+        .strength(function (s: any) {return s.strength;})
+        .distance(function (s: any) {return s.distance;});
     this.simulation.alpha(1).restart();
+  }
+
+  resetZoom() {
+    let nonSelected = d3.select('#d3-graph').selectAll('.node > text.urltext:not(.selected)');
+    let selected = d3.select('#d3-graph').selectAll('.node > text.selected');
+    if (this.currentZoom < fadeLabelsAt) {
+      nonSelected.attr('fill-opacity', '0.0')
+          .attr('class', 'urltext hidden');
+      selected.attr('fill-opacity', '1.0');
+    } else if (this.currentZoom >= fadeLabelsAt && this.currentZoom < showLabelsAt) {
+      nonSelected.attr('fill-opacity', ((this.currentZoom - fadeLabelsAt) / (showLabelsAt - fadeLabelsAt)).toString())
+          .attr('class', 'urltext');
+      selected.attr('fill-opacity', '1.0');
+    } else if (this.currentZoom >= showLabelsAt) {
+      nonSelected.attr('fill-opacity', '1.0')
+          .attr('class', 'urltext');
+      selected.attr('fill-opacity', '1.0');
+    } else {
+      console.log('got a fail', this.currentZoom);
+    }
   }
 
   ngOnDestroy() {
@@ -320,7 +349,9 @@ export class HistoryGraphComponent implements OnInit {
     this.d3Node = z.append("g").selectAll(".node");
 
     svg.call(d3Zoom.zoom().on("zoom", () => {
+          this.currentZoom = d3.event.transform.k;
           g.attr("transform", d3.event.transform);
+          this.resetZoom();
         }));
 
     this.getUrls();
