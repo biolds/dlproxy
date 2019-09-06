@@ -29,6 +29,14 @@ export function _sanitizeUrl(url: string): string {
   return 'unsafe:' + url;
 }
 
+// https://stackoverflow.com/questions/50993498/flat-is-not-a-function-whats-wrong
+Object.defineProperty(Array.prototype, 'flat', {
+    value: function(depth = 1) {
+      return this.reduce(function (flat, toFlatten) {
+        return flat.concat((Array.isArray(toFlatten) && (depth>1)) ? toFlatten.flat(depth-1) : toFlatten);
+      }, []);
+    }
+});
 
 @Component({
   selector: 'app-search',
