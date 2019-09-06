@@ -131,7 +131,7 @@ class SearchEngine(Base):
                 print('found search %s on %s' % (terms, se.html_template))
                 return se, terms
             else:
-                if se_url.path != parsed_url.path:
+                if se_url.path.rstrip('/') != parsed_url.path.rstrip('/'):
                     print('se %s path did not match' % se.html_template)
                     continue
 
