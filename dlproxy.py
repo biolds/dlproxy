@@ -21,7 +21,7 @@ if __name__ == '__main__':
         print('Done')
         sys.exit(0)
 
-    if conf.url is None:
+    if not hasattr(conf, 'url'):
         conf.url = 'http://%s:%i/' % (my_hostname, conf.port)
 
     if not conf.dev:
