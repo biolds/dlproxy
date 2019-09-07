@@ -30,13 +30,11 @@ export function _sanitizeUrl(url: string): string {
 }
 
 // https://stackoverflow.com/questions/50993498/flat-is-not-a-function-whats-wrong
-Object.defineProperty(Array.prototype, 'flat', {
-    value: function(depth = 1) {
-      return this.reduce(function (flat, toFlatten) {
-        return flat.concat((Array.isArray(toFlatten) && (depth>1)) ? toFlatten.flat(depth-1) : toFlatten);
-      }, []);
-    }
-});
+function listFlatten(lst, depth=1) {
+  return lst.reduce(function (flat, toFlatten) {
+    return flat.concat((Array.isArray(toFlatten) && (depth>1)) ? listFlatten(toFlatten, depth-1) : toFlatten);
+  }, []);
+}
 
 @Component({
   selector: 'app-search',
@@ -75,9 +73,9 @@ export class SearchComponent implements OnInit {
   }
 
   lookupBang() {
-    const terms = this.searchForm.value.search.split('"')
-        .map((t, i) => i % 2 ? t : t.split(' ') )
-        .flat().filter(t => t !== '');
+    const terms = listFlatten(this.searchForm.value.search.split('"')
+        .map((t, i) => i % 2 ? t : t.split(' ') ))
+        .filter(t => t !== '');
 
     for (let se of this.searchEngines) {
       for (let term of terms) {
