@@ -1,7 +1,9 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, create_engine
+import threading
+
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, create_engine, event
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, sessionmaker, scoped_session
 from sqlalchemy.orm.exc import NoResultFound
 
 
@@ -36,8 +38,52 @@ class Url(Base):
         return instance
 
 
-def init_db(conf, engine):
+def _get_engine():
+    engine = create_engine('postgresql+psycopg2://dlproxy:dlproxy@localhost:5432/dlproxy',
+                max_overflow=-1 # allow unlimited connections since, threads count is not limited
+                ) #, echo=True)
+    return engine
+
+
+DBSession = None
+
+
+def get_db_session():
     import local.access
     import local.download
+    import local.proxy
+    import local.search_engine
+    import local.searchs
+    import local.settings
+
+    global DBSession
+    if DBSession is None:
+        engine = _get_engine()
+        session_factory = sessionmaker(bind=engine)
+        DBSession = scoped_session(session_factory)
+    return DBSession()
+
+
+def db_close_session():
+    DBSession.remove()
+
+
+def db_reset():
+    #import local.access
+    #import local.download
+    engine = _get_engine()
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
+
+
+def db_startup_cleaning(db):
+    from local.download import Download
+
+    print('db_startup_cleaning %s' % db)
+    print('got %s' % list(db.query(Download).filter(Download.to_keep == False)))
+    for download in db.query(Download).filter(Download.to_keep == False):
+        db.delete(download)
+    for download in db.query(Download).filter(Download.downloaded == False):
+        download.update_from_file(db)
+        db.add(download)
+    db.commit()
