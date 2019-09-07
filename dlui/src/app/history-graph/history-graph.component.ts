@@ -112,7 +112,7 @@ export class HistoryGraphComponent implements OnInit {
         }
 
         if (!linksMap[linkId]) {
-          const link = {source: domainsMap[domain], target: urlsMap[id], type: 'domain', strength: 0.01, distance: 100};
+          const link = {source: domainsMap[domain], target: urlsMap[id], type: 'domain', strength: 0.5, distance: 100};
           linksMap[linkId] = link;
           console.log('added domain link', linkId);
           this.links.push(link);
@@ -174,7 +174,7 @@ export class HistoryGraphComponent implements OnInit {
 
           if (!linksMap[src] || !linksMap[src][dst]) {
             if (!this.linksMap[src] || !this.linksMap[src][dst]) {
-              let link = {source: srcNode, target: dstNode, type: 'referer', strength: 0.1, distance: 100};
+              let link = {source: srcNode, target: dstNode, type: 'referer', strength: 1, distance: 100};
               linksMap[src][dst] = link;
               console.log('adding link', src, dst);
               this.links.push(link);
@@ -325,8 +325,8 @@ export class HistoryGraphComponent implements OnInit {
     this.simulation = d3Force.forceSimulation(this.nodes)
         .force("charge", d3Force.forceManyBody().strength(-300))
         .force("link", d3Force.forceLink(this.links).distance(60))
-        .force("x", d3Force.forceX())
-        .force("y", d3Force.forceY())
+        //.force("x", d3Force.forceX())
+        //.force("y", d3Force.forceY())
         .alphaTarget(1)
         .on("tick", () => {
           this.d3Node.attr("transform", function(d: any) {
