@@ -38,11 +38,8 @@ from dlproxy.searchs import Search, SearchResult
 from dlproxy.search_engine import SearchEngine
 
 
-conf = None
-
-
 def my_address(path=None):
-    global conf
+    from dlproxy.conf import conf
     addr = conf.url
     if path:
         addr += path
@@ -80,6 +77,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     def setup(self):
         super().setup()
+        from dlproxy.conf import conf
+        self.conf = conf
         self.db = get_db_session()
         print('new setup')
 
@@ -121,10 +120,9 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             print('path %s / %s' % (self.path, my_addr))
             print('websocket %s' % self.headers.get('Upgrade'))
-            global conf
             # Relay CONNECT's to the web ui when dev is enabled
-            if (self.path.startswith(my_address()) or self.path == my_addr) and (self.command != 'CONNECT' or not conf.dev):
-                router.handle(self, conf)
+            if (self.path.startswith(my_address()) or self.path == my_addr) and (self.command != 'CONNECT' or not self.conf.dev):
+                router.handle(self, self.conf)
             else:
                 self.proxy_request()
             self.wfile.flush() #actually send the response if not already done.
@@ -230,8 +228,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         response = response.encode('ascii')
         self.wfile.write(response)
 
-        global conf
-        if conf.dev and 'index' not in kwargs:
+        if self.conf.dev and 'index' not in kwargs:
             # For error handling with the dev server index.html on angular dev server
             # is requested
             origin = ('http://', '127.0.0.1:4200')
@@ -242,7 +239,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             res = conn.getresponse()
             kwargs['index'] = res.read()
 
-        content = render_index(self, conf, *args, **kwargs)
+        content = render_index(self, self.conf, *args, **kwargs)
         self.send_header('Content-Type', 'text/html')
         self.send_header('Content-Length', len(content))
         self.send_header('Connection', 'close')
@@ -273,8 +270,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         my_addr = my_addr[len('http://'):]
 
         # Relay websocket in dev mode
-        global conf
-        relay = (conf.dev is True and (self.path.startswith(my_address()) or self.path == my_addr))
+        relay = (self.conf.dev is True and (self.path.startswith(my_address()) or self.path == my_addr))
 
         # Relay websocket on http
         relay |= address[1] == 80
@@ -319,8 +315,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
         my_addr = my_address().rstrip('/')
         my_addr = my_addr[len('http://'):]
-        global conf
-        relay_self = (conf.dev is True and (self.path.startswith(my_address()) or self.path == my_addr))
+        relay_self = (self.conf.dev is True and (self.path.startswith(my_address()) or self.path == my_addr))
 
         if relay_self:
             is_websocket = True
@@ -418,7 +413,6 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             if inject:
                 print('inject/content-type:', res.getheader('content-type'))
 
-            global conf
             if is_download and self.command in ('GET', 'POST') and res.status >= 200 and res.status < 300:
                 if '/' in filename:
                     _, filename = filename.rsplit('/', 1)
@@ -432,7 +426,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 download_id = download.id
                 self.send_header('Location', my_address('download/%s' % download.id))
                 self.end_headers()
-            elif inject and conf.dev is True and (res.getheader('content-type') == 'text/html'
+            elif inject and self.conf.dev is True and (res.getheader('content-type') == 'text/html'
                                                 or res.getheader('content-type',  '').startswith('text/html;')):
                 print('injecting live')
                 self.render_index(HTTPStatus.OK, 'angular', index=res.read())
