@@ -49,12 +49,12 @@ DBSession = None
 
 
 def get_db_session():
-    import local.access
-    import local.download
-    import local.proxy
-    import local.search_engine
-    import local.searchs
-    import local.settings
+    import dlproxy.access
+    import dlproxy.download
+    import dlproxy.proxy
+    import dlproxy.search_engine
+    import dlproxy.searchs
+    import dlproxy.settings
 
     global DBSession
     if DBSession is None:
@@ -69,15 +69,15 @@ def db_close_session():
 
 
 def db_reset():
-    #import local.access
-    #import local.download
+    #import dlproxy.access
+    #import dlproxy.download
     engine = _get_engine()
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
 
 
 def db_startup_cleaning(db):
-    from local.download import Download
+    from dlproxy.download import Download
 
     print('db_startup_cleaning %s' % db)
     print('got %s' % list(db.query(Download).filter(Download.to_keep == False)))

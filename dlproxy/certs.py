@@ -3,8 +3,8 @@ from time import time
 from OpenSSL import crypto
 from sqlalchemy import Column, Integer, String
 
-from local.sql import Base
-from local.settings import Settings
+from dlproxy.sql import Base
+from dlproxy.settings import Settings
 
 
 def generate_cert(request, domain):

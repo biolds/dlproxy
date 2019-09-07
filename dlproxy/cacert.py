@@ -1,6 +1,6 @@
 from OpenSSL import crypto
 
-from local.settings import Settings, settings_get
+from dlproxy.settings import Settings, settings_get
 
 
 def cacert_download(request, query):

@@ -5,9 +5,9 @@ import json
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, desc, func
 from sqlalchemy.orm import relationship
 
-from local.search_engine import SearchEngine
-from local.sql import Base, Url
-from local.view import serialize
+from dlproxy.search_engine import SearchEngine
+from dlproxy.sql import Base, Url
+from dlproxy.view import serialize
 
 
 class Search(Base):

@@ -8,8 +8,8 @@ from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Intege
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
 
-from local.sql import Base, Url
-from local.view import list_serialize, serialize
+from dlproxy.sql import Base, Url
+from dlproxy.view import list_serialize, serialize
 
 
 class Download(Base):

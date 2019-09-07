@@ -2,8 +2,8 @@ import json
 
 from sqlalchemy import Column, Integer, String
 
-from local.sql import Base
-from local.view import serialize
+from dlproxy.sql import Base
+from dlproxy.view import serialize
 
 
 class Settings(Base):

@@ -3,8 +3,8 @@ import json
 from sqlalchemy import DateTime, Column, ForeignKey, Integer, String, func, or_
 from sqlalchemy.orm import relationship
 
-from local.sql import Base, Url
-from local.view import list_serialize, ilike_escape
+from dlproxy.sql import Base, Url
+from dlproxy.view import list_serialize, ilike_escape
 
 
 class UrlAccess(Base):

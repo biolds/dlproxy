@@ -28,14 +28,14 @@ from sqlalchemy.orm.exc import NoResultFound, StaleDataError
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, scoped_session
 
-from local.access import UrlAccess
-from local.certs import generate_cert
-from local.download import Download
-from local.index import load_index_content, render_index
-from local.router import router
-from local.sql import Base, Url, get_db_session, db_close_session
-from local.searchs import Search, SearchResult
-from local.search_engine import SearchEngine
+from dlproxy.access import UrlAccess
+from dlproxy.certs import generate_cert
+from dlproxy.download import Download
+from dlproxy.index import load_index_content, render_index
+from dlproxy.router import router
+from dlproxy.sql import Base, Url, get_db_session, db_close_session
+from dlproxy.searchs import Search, SearchResult
+from dlproxy.search_engine import SearchEngine
 
 
 conf = None

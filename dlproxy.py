@@ -4,15 +4,15 @@ import socket
 import sys
 import os
 
-from local.access import UrlAccess
-from local.certs import generate_cert
-from local.download import Download
-from local.index import load_index_content, render_index
-from local.proxy import ThreadingHTTPServer, ProxyRequestHandler, my_address
-from local.router import router
-from local.sql import Base, Url, db_reset, db_startup_cleaning, get_db_session
-from local.searchs import Search, SearchResult
-from local.search_engine import SearchEngine
+from dlproxy.access import UrlAccess
+from dlproxy.certs import generate_cert
+from dlproxy.download import Download
+from dlproxy.index import load_index_content, render_index
+from dlproxy.proxy import ThreadingHTTPServer, ProxyRequestHandler, my_address
+from dlproxy.router import router
+from dlproxy.sql import Base, Url, db_reset, db_startup_cleaning, get_db_session
+from dlproxy.searchs import Search, SearchResult
+from dlproxy.search_engine import SearchEngine
 
 
 if __name__ == '__main__':
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     parser.add_argument('--dev', action='store_true', help='Serve UI through Angular development server (on localhost:4200)')
     parser.add_argument('-p', '--port', type=int, help='Port number to listen on', default=8000)
     parser.add_argument('-u', '--url', help='Public url (default %s)' % default_url, default=None)
-    from local import proxy
+    from dlproxy import proxy
     proxy.conf = parser.parse_args()
     conf = proxy.conf
 

@@ -7,7 +7,7 @@ import yaml
 from sqlalchemy import Boolean, Column, Integer, String
 from sqlalchemy.orm import relationship
 
-from local.sql import Base, Url
+from dlproxy.sql import Base, Url
 
 
 class SearchEngine(Base):
@@ -217,7 +217,7 @@ def search_redirect(request, query, search_id):
     request.send_header('Location', location)
     request.end_headers()
 
-    from local.searchs import Search
+    from dlproxy.searchs import Search
     s = Search.get_or_create(request.db, search, search_engine)
     request.db.add(s)
     request.db.commit()
