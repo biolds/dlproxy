@@ -39,6 +39,10 @@ def url_accesses(request, query):
             filters.append((UrlAccess.url.has(Url.url.ilike(term))) | 
                            (UrlAccess.url.has(Url.title.ilike(term))))
 
-    r = list_serialize(request, query, UrlAccess, 1, 30, filters)
+    with_dates = False
+    if 'with_dates' in query and query.get('with_dates')[0] == '1':
+        with_dates = True
+
+    r = list_serialize(request, query, UrlAccess, 1, 30, filters, with_dates=with_dates)
     r = json.dumps(r).encode('ascii')
     request.send_content_response(r, 'application/json')

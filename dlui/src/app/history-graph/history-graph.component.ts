@@ -81,7 +81,7 @@ export class HistoryGraphComponent implements OnInit {
     return u.hostname;
   }
 
-  addUrlToNodes(url: Url, urlsMap: any, domainsMap: any, linksMap: any) {
+  addUrlToNodes(url: Url, date: number, urlsMap: any, domainsMap: any, linksMap: any) {
     let id = url.id;
 
     if (!urlsMap[id]) {
@@ -93,6 +93,7 @@ export class HistoryGraphComponent implements OnInit {
         linksMap[linkId] = this.linksMap[linkId];
         console.log('node already there', id);
       } else {
+        console.log('got date', date);
         urlsMap[id] = {id: id, title: url.url, url: url.url, type: 'url'};
 
         if (url.title) {
@@ -146,8 +147,7 @@ export class HistoryGraphComponent implements OnInit {
       }
     }
 
-    const searchTerms = this.viewForm.value.search.split(' ').filter(s => s !== '').map(s => s.toLowerCase());
-    this.urlService.getUrlAccesses(0, 1000, filter).subscribe((urls) => {
+    this.urlService.getUrlAccessesWithDates(0, 1000, filter).subscribe((urls) => {
       console.log('match:', urls.count, urls.objs.length);
       const nodesLength = this.nodes.length;
       const linksLength = this.links.length;
@@ -157,10 +157,10 @@ export class HistoryGraphComponent implements OnInit {
       let domainsMap = {};
 
       urls.objs.map((url) => {
-        this.addUrlToNodes(url.url, urlsMap, domainsMap, linksMap);
+        this.addUrlToNodes(url.url, url.date, urlsMap, domainsMap, linksMap);
 
         if (url.referer) {
-          this.addUrlToNodes(url.referer, urlsMap, domainsMap, linksMap);
+          this.addUrlToNodes(url.referer, url.date, urlsMap, domainsMap, linksMap);
 
           let src = url.referer.id;
           let dst = url.url.id;
@@ -276,9 +276,9 @@ export class HistoryGraphComponent implements OnInit {
 
     // Update and restart the simulation.
     this.simulation.nodes(this.nodes);
-    this.simulation.force("link").links(this.links)
-        .strength(function (s: any) {return s.strength;})
-        .distance(function (s: any) {return s.distance;});
+    this.simulation.force("link").links(this.links);
+    //    .strength(function (s: any) {return s.strength;})
+    //    .distance(function (s: any) {return s.distance;});
     this.simulation.alpha(1).restart();
   }
 

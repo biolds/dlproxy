@@ -4,6 +4,7 @@ import json
 
 from sqlalchemy import desc, Boolean, DateTime, Integer
 from sqlalchemy.inspection import inspect
+from sqlalchemy.sql import functions
 
 
 def serialize(request, cls, obj_id, level):
@@ -81,7 +82,7 @@ def convert_value(cls, attr, val):
     return val
 
 
-def list_serialize(request, query, cls, level, limit=30, filters=None):
+def list_serialize(request, query, cls, level, limit=30, filters=None, with_dates=False):
     # Ordering
     order = 'id'
     descending = True
@@ -154,6 +155,10 @@ def list_serialize(request, query, cls, level, limit=30, filters=None):
     objs = request.db.query(cls).filter(*filters)
     count = objs.count()
 
+    if with_dates:
+        dates = .select(functions.max()).select_from(objs)
+        raise Exception('got dates: %s' % dates)
+
     if order is not None:
         objs = objs.order_by(order)
 
@@ -176,6 +181,10 @@ def list_serialize(request, query, cls, level, limit=30, filters=None):
         'offset': offset,
         'objs': []
     }
+
+    #if with_dates:
+    #    r.update({
+    #        'date_min': date
 
     for obj in objs:
         r['objs'].append(serialize(request, cls, obj.id, level))

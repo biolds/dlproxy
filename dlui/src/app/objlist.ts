@@ -3,3 +3,8 @@ export class ObjList<T> {
   offset: number;
   objs: T[];
 }
+
+export class ObjListWithDates<T> extends ObjList<T> {
+  start_date: number;
+  end_date: number;
+}
