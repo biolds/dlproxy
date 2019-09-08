@@ -325,8 +325,8 @@ export class HistoryGraphComponent implements OnInit {
     this.simulation = d3Force.forceSimulation(this.nodes)
         .force("charge", d3Force.forceManyBody().strength(-300))
         .force("link", d3Force.forceLink(this.links).distance(60))
-        //.force("x", d3Force.forceX())
-        //.force("y", d3Force.forceY())
+        .force("x", d3Force.forceX().strength(0.05))
+        .force("y", d3Force.forceY())
         .alphaTarget(1)
         .on("tick", () => {
           this.d3Node.attr("transform", function(d: any) {
