@@ -324,7 +324,7 @@ export class HistoryGraphComponent implements OnInit {
 
     this.simulation = d3Force.forceSimulation(this.nodes)
         .force("charge", d3Force.forceManyBody().strength(-300))
-        .force("link", d3Force.forceLink(this.links).distance(60))
+        .force("link", d3Force.forceLink(this.links).distance(100))
         .force("x", d3Force.forceX().strength(0.05))
         .force("y", d3Force.forceY())
         .alphaTarget(1)
