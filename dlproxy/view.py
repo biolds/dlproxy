@@ -2,7 +2,7 @@ from datetime import datetime
 import enum
 import json
 
-from sqlalchemy import desc, Boolean, DateTime, Integer
+from sqlalchemy import desc, Boolean, DateTime, Integer, func
 from sqlalchemy.inspection import inspect
 from sqlalchemy.sql import functions
 
@@ -156,8 +156,7 @@ def list_serialize(request, query, cls, level, limit=30, filters=None, with_date
     count = objs.count()
 
     if with_dates:
-        dates = .select(functions.max()).select_from(objs)
-        raise Exception('got dates: %s' % dates)
+        dates = request.db.query(func.min(cls.date), func.max(cls.date)).filter(*filters).all()
 
     if order is not None:
         objs = objs.order_by(order)
@@ -182,9 +181,11 @@ def list_serialize(request, query, cls, level, limit=30, filters=None, with_date
         'objs': []
     }
 
-    #if with_dates:
-    #    r.update({
-    #        'date_min': date
+    if with_dates:
+        r.update({
+            'date_min': datetime.timestamp(dates[0][0]),
+            'date_max': datetime.timestamp(dates[0][1]),
+        })
 
     for obj in objs:
         r['objs'].append(serialize(request, cls, obj.id, level))

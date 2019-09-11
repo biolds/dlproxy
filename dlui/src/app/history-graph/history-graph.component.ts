@@ -70,6 +70,10 @@ export class HistoryGraphComponent implements OnInit {
   interval: number;
   currentZoom: number;
   private selectedNode: any;
+  dateMin: number;
+  dateMax: number;
+  width: number;
+  height: number;
 
   constructor(private urlService: UrlService) {
   }
@@ -93,8 +97,9 @@ export class HistoryGraphComponent implements OnInit {
         linksMap[linkId] = this.linksMap[linkId];
         console.log('node already there', id);
       } else {
-        console.log('got date', date);
-        urlsMap[id] = {id: id, title: url.url, url: url.url, type: 'url'};
+        let x = ((date - this.dateMin) / (this.dateMax - this.dateMin) * this.width) - (this.width / 2);
+        console.log('got date', date, x);
+        urlsMap[id] = {id: id, title: url.url, url: url.url, type: 'url', y: 0, x: x };
 
         if (url.title) {
           urlsMap[id].title = url.title;
@@ -107,7 +112,8 @@ export class HistoryGraphComponent implements OnInit {
           if (this.domainsMap[domain]) {
             domainsMap[domain] = this.domainsMap[domain];
           } else {
-            domainsMap[domain] = {id: domain, title: domain, url: domain, type: 'domain'};
+            let x = ((date - this.dateMin) / (this.dateMax - this.dateMin) * this.width) - (this.width / 2);
+            domainsMap[domain] = {id: domain, title: domain, url: domain, type: 'domain', x: x, y: this.height / 2};
             this.nodes.push(domainsMap[domain]);
           }
         }
@@ -149,6 +155,8 @@ export class HistoryGraphComponent implements OnInit {
 
     this.urlService.getUrlAccessesWithDates(0, 1000, filter).subscribe((urls) => {
       console.log('match:', urls.count, urls.objs.length);
+      this.dateMin = urls.date_min;
+      this.dateMax = urls.date_max;
       const nodesLength = this.nodes.length;
       const linksLength = this.links.length;
 
@@ -236,7 +244,11 @@ export class HistoryGraphComponent implements OnInit {
     this.d3Node = this.d3Node.data(this.nodes, (d: any) => { return d.id;});
     this.d3Node.exit().remove();
     let resetZoom = () => this.resetZoom();
-    let newNodes = this.d3Node.enter().append("g").attr('class', 'node');
+    let newNodes = this.d3Node.enter().append("g").attr('class', 'node')
+        .attr("transform", function(d: any) {
+            console.log('translate', d.x, d.y);
+            return "translate(" + d.x + "," + d.y + ")";
+          });
     newNodes.append('text')
       .attr('x', 11)
       .attr('y', 5)
@@ -307,11 +319,11 @@ export class HistoryGraphComponent implements OnInit {
   }
 
   ngOnInit() {
-    var width = 1600;
-    var height = 800;
+    this.width = 1600;
+    this.height = 800;
     var svg = d3.select("#d3-graph")
         .attr("preserveAspectRatio", "xMinYMin meet")
-        .attr("viewBox", `0 0 ${width} ${height}`);
+        .attr("viewBox", `0 0 ${this.width} ${this.height}`);
     this.scale = d3Scale.scaleOrdinal(d3ScaleChromatic.schemeCategory10);
     this.color = (domain) => {
       let c = this.scale(domain.length);
@@ -340,11 +352,11 @@ export class HistoryGraphComponent implements OnInit {
 	});
 
     var g = svg.append("g")
-        .attr("width", width)
-        .attr("height", height);
+        .attr("width", this.width)
+        .attr("height", this.height);
 
     var z = g.append("g")
-        .attr("transform", `translate(${width / 2},${height / 2})`)
+        .attr("transform", `translate(${this.width / 2},${this.height / 2})`)
     this.d3Link = z.append("g").attr("stroke", "#000").attr("stroke-width", 1.5).selectAll(".link");
     this.d3Node = z.append("g").selectAll(".node");
 
@@ -356,6 +368,11 @@ export class HistoryGraphComponent implements OnInit {
 
     this.getUrls();
     this.restart();
+
+    setTimeout(() => {
+        console.log('stopping');
+        this.simulation.alphaTarget(0);
+    }, 3000);
 
     this.interval = setInterval(() => {
       this.refreshUrls();

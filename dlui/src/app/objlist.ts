@@ -5,6 +5,6 @@ export class ObjList<T> {
 }
 
 export class ObjListWithDates<T> extends ObjList<T> {
-  start_date: number;
-  end_date: number;
+  date_min: number;
+  date_max: number;
 }
