@@ -62,7 +62,7 @@ class SearchResult(Base):
 def last_searches(request, query):
     searches = request.db.query(Search).order_by(desc(Search.date)).limit(100)
     search_ids = [r.id for r in searches]
-    results = request.db.query(SearchResult).filter(Search.id.in_(search_ids))
+    results = request.db.query(SearchResult).filter(SearchResult.search_id.in_(search_ids))
 
     resp = {
         'count': searches.count(),
