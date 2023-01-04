@@ -62,10 +62,10 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
 class ProxyRequestHandler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
 
-    cakey = 'ca.key'
-    cacert = 'ca.crt'
-    certkey = 'cert.key'
-    certdir = 'certs/'
+    cakey = '/opt/dlprowy/ca.key'
+    cacert = '/opt/dlprowy/ca.crt'
+    certkey = '/opt/dlprowy/cert.key'
+    certdir = '/opt/dlprowy/certs/'
     timeout = 5
     lock = threading.Lock()
 

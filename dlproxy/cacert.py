@@ -26,7 +26,7 @@ def cacert_generate(request, query):
         request.send_error(HTTPStatus.METHOD_NOT_ALLOWED)
         return
 
-    from proxy2 import my_hostname
+    from .conf import my_hostname
     # Based on https://stackoverflow.com/questions/45873832/how-do-i-create-and-sign-certificates-with-pythons-pyopenssl
 
     # CA key and certificate
@@ -72,4 +72,8 @@ def cacert_generate(request, query):
     request.db.add(settings)
     request.db.commit()
 
-    settings_get(request)
+    from .proxy import ProxyRequestHandler
+    with open(ProxyRequestHandler.certkey, 'w') as fd:
+        fd.write(settings.certs_key)
+
+    settings_get(request, None)
